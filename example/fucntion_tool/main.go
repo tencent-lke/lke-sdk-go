@@ -11,6 +11,7 @@ import (
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 const (
@@ -21,8 +22,17 @@ type MyEventHandler struct {
 	lkesdk.DefaultEventHandler // 引用默认实现
 }
 
-func add(a, b int) int {
+func add(a int, b int) int {
 	return a + b
+}
+
+type AddParam struct {
+	A int `json:"a"`
+	B int `json:"b"`
+}
+
+func add2(param1 AddParam) int {
+	return param1.A + param1.B
 }
 
 // Reply 自定义回复处理事件
@@ -39,7 +49,16 @@ func main() {
 	client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_10")
 	client.SetEventHandler(&MyEventHandler{})
+	// 方式1, 自定义函数如参是一个 struct，并且 struct 中每个字段都有 tag
+	tools := []*tool.FunctionTool{}
+	t, err := tool.NewFunctionTool("add", "计算两个数的和", add2, nil)
+	if err != nil {
+		tools = append(tools, t)
+	} else {
+		log.Panicf("不支持的函数定义: %v", err)
+	}
 
+	client.AddFunctionTools("agentA", tools)
 	for {
 		reader := bufio.NewReader(os.Stdin)
 

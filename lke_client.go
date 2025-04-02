@@ -10,6 +10,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 const kDefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
@@ -21,16 +22,18 @@ type LkeClient struct {
 	visitorBizID string // 访客 ID（外部系统提供，需确认不同的访客使用不同的 ID）
 	endpoint     string // 调用地址
 	eventHandler EventHandler
+	toolsMap     map[string]map[string]tool.FunctionTool // agentName -> map[toolname -> FunctionTool] 的映射
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
-func NewLkeClient(botAppKey, sessionID, visitorBizID string) *LkeClient {
+func NewLkeClient(botAppKey, sessionID string) *LkeClient {
 	return &LkeClient{
 		botAppKey:    botAppKey,
 		sessionID:    sessionID,
-		visitorBizID: visitorBizID,
+		visitorBizID: "123456789",
 		endpoint:     kDefaultEndpoint,
 		eventHandler: nil,
+		toolsMap:     map[string]map[string]tool.FunctionTool{},
 	}
 }
 
@@ -43,11 +46,6 @@ func (c LkeClient) GetSessionID() string {
 	return c.sessionID
 }
 
-// GetVisitorBizID returns the visitor business ID
-func (c LkeClient) GetVisitorBizID() string {
-	return c.visitorBizID
-}
-
 // SetBotAppKey sets the bot application key
 func (c *LkeClient) SetBotAppKey(botAppKey string) {
 	c.botAppKey = botAppKey
@@ -56,11 +54,6 @@ func (c *LkeClient) SetBotAppKey(botAppKey string) {
 // SetSessionID sets the session ID
 func (c *LkeClient) SetSessionID(sessionID string) {
 	c.sessionID = sessionID
-}
-
-// SetVisitorBizID sets the visitor business ID
-func (c *LkeClient) SetVisitorBizID(visitorBizID string) {
-	c.visitorBizID = visitorBizID
 }
 
 // GetEndpoint returns the endpoint URL
@@ -78,10 +71,22 @@ func (c *LkeClient) SetEventHandler(eventHandler EventHandler) {
 	c.eventHandler = eventHandler
 }
 
-// Chat 对话接口，query 用户的输入，options 可选参数，可以为空
-func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
-	finalReply event.ReplyEvent, err error) {
-	req := model.ChatRequest{
+func (c *LkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionTool) {
+	if len(tools) == 0 {
+		return
+	}
+
+	toolFuncMap, ok := c.toolsMap[agentName]
+	if !ok {
+		toolFuncMap = map[string]tool.FunctionTool{}
+		c.toolsMap[agentName] = toolFuncMap
+	}
+	for _, tool := range tools {
+		toolFuncMap[tool.GetName()] = *tool
+	}
+}
+func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatRequest {
+	req := &model.ChatRequest{
 		Content:      query,
 		VisitorBizID: c.visitorBizID,
 		BotAppKey:    c.botAppKey,
@@ -90,6 +95,27 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 	if options != nil {
 		req.Options = *options
 	}
+	fmt.Print(len(c.toolsMap))
+	for agentName, toolFuncMap := range c.toolsMap {
+		if len(toolFuncMap) > 0 {
+			dynamicTool := model.DynamicTool{
+				AgentName: agentName,
+			}
+			for _, t := range toolFuncMap {
+				dynamicTool.Tools = append(dynamicTool.Tools, tool.ToOpenAIToolPB(&t))
+			}
+			req.DynamicTools = append(req.DynamicTools, dynamicTool)
+		}
+	}
+	bs, _ := json.MarshalIndent(req, "  ", "  ")
+	fmt.Println(string(bs))
+	return req
+}
+
+// Chat 对话接口，query 用户的输入，options 可选参数，可以为空
+func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
+	finalReply event.ReplyEvent, err error) {
+	req := c.buildReq(query, options)
 	sseCli := sse.NewClient(c.endpoint, func(c *sse.Client) {
 		body, _ := json.Marshal(req)
 		c.Body = bytes.NewReader(body)
