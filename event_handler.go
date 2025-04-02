@@ -16,6 +16,9 @@ type EventHandler interface {
 
 	// Reference 引用事件处理
 	Reference(refer *event.ReferenceEvent)
+
+	// TokenStat token 统计事件
+	TokenStat(stat *event.TokenStatEvent)
 }
 
 // DefaultEventHandler 默认事件处理
@@ -33,3 +36,6 @@ func (DefaultEventHandler) Thought(thought *event.AgentThoughtEvent) {}
 
 // Reference 引用事件处理
 func (DefaultEventHandler) Reference(refer *event.ReferenceEvent) {}
+
+// TokenStat token 统计事件
+func (DefaultEventHandler) TokenStat(stat *event.TokenStatEvent) {}

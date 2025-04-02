@@ -21,10 +21,6 @@ type MyEventHandler struct {
 	lkesdk.DefaultEventHandler // 引用默认实现
 }
 
-func add(a, b int) int {
-	return a + b
-}
-
 // Reply 自定义回复处理事件
 func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 	if reply.IsFromSelf {

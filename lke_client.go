@@ -165,6 +165,13 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 				c.eventHandler.Reply(&reply)
 				break
 			}
+		case event.EventTokenStat:
+			{
+				tokenStat := event.TokenStatEvent{}
+				json.Unmarshal(ev.Payload, &tokenStat)
+				c.eventHandler.TokenStat(&tokenStat)
+				break
+			}
 		}
 	}
 	e := sseCli.SubscribeRawWithContext(ctx, handler)
