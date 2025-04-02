@@ -74,4 +74,4 @@ for {
 详细示例查看 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/general/main.go)
 
 ## function tool
-[函数 tool 教程]()
+[函数 tool 教程](https://github.com/tencent-lke/lke-sdk-go/blob/main/tool/readme.md)
