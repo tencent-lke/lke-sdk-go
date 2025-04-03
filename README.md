@@ -1,10 +1,12 @@
 # lke-sdk-go
 腾讯云大模型知识引擎(lke) golang sdk。
 
-## install
+相关概念和 API 请参考 [腾讯云大模型知识引擎对话接口文档](https://cloud.tencent.com/document/product/1759/105561)。
+
+## Install
 `go get github.com/tencent-lke/lke-sdk-go`
 
-## usage
+## Usage
 
 1. 创建 client
 ```go
@@ -71,10 +73,10 @@ for {
 }
 ```
 
-## example
+## Example
 `go run example/general/main.go`
 
 详细示例查看 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/general/main.go)
 
-## tool
-[tool 教程](https://github.com/tencent-lke/lke-sdk-go/blob/main/tool/readme.md)
+## Tool
+[使用 tool 教程](https://github.com/tencent-lke/lke-sdk-go/blob/main/tool/readme.md)

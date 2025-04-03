@@ -2,7 +2,7 @@
 
 ## fucntion tool
 
-### usage
+### Usage
 `client.AddFunctionTools("agentA", tools)`
 
 其中 agentA 是需要增加 tools 的 agent 名字，tools 是函数插件列表
@@ -65,14 +65,14 @@ if err == nil {
 client.AddFunctionTools("agentB", tools)
 ```
 
-### example
+### Example
 `go run example/fucntion_tool/main.go`
 
 详细示例 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/fucntion_tool/main.go)
 
 ## mcp tool
 
-### usage
+### Usage
 `client.AddMcpTools("A", c, []string{"write_file", "move_file"})`
 
 其中 agentA 是需要增加 tools 的 agent, c 是 mcp client 对象，可以选择加入哪些 tools，不选择默认增加全部 tools。
@@ -156,7 +156,7 @@ for _, tools := range addTools {
 }
 ```
 
-### example
+### Example
 `go run example/mcp_tool/main.go`
 
 详细示例 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/mcp_tool/main.go)
