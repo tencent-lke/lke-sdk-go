@@ -8,9 +8,9 @@
 
 1. 创建 client
 ```go
-const kBotAppKey = "zIIRbxwI"
+const botAppKey = "zIIRbxwI"
 sessionId := uuid.New().String()
-client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
+client := lkesdk.NewLkeClient(botAppKey, sessionId)
 ```
 
 2. 自定义事件处理
@@ -71,7 +71,10 @@ for {
 }
 ```
 
+## example
+`go run example/general/main.go`
+
 详细示例查看 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/general/main.go)
 
-## function tool
-[函数 tool 教程](https://github.com/tencent-lke/lke-sdk-go/blob/main/tool/readme.md)
+## tool
+[tool 教程](https://github.com/tencent-lke/lke-sdk-go/blob/main/tool/readme.md)

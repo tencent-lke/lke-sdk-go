@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	kBotAppKey = "xxxx"
+	botAppKey = "xxxx"
 )
 
 type MyEventHandler struct {
@@ -32,9 +32,9 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 
 func main() {
 	sessionId := uuid.New().String()
-	client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
+	client := lkesdk.NewLkeClient(botAppKey, sessionId)
 	client.SetEventHandler(&MyEventHandler{})
-	client.SetMock(true)
+	// client.SetMock(true)
 
 	for {
 		reader := bufio.NewReader(os.Stdin)

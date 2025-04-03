@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	kBotAppKey = "xxx"
+	botAppKey = "xxx"
 )
 
 // func compileTestServer() (string, error) {
@@ -135,7 +135,7 @@ func addFileSystemStdioMcp(client *lkesdk.LkeClient) {
 
 func main() {
 	sessionId := uuid.New().String()
-	client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
+	client := lkesdk.NewLkeClient(botAppKey, sessionId)
 	client.SetMock(true)
 	addCustomStdioMcp(client)     // 增加自定义 mcp 插件
 	addFileSystemStdioMcp(client) // 增加 npx mcp 插件
