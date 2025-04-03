@@ -6,14 +6,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime/debug"
+	"sync"
 
+	"github.com/openai/openai-go"
 	"github.com/r3labs/sse/v2"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
-const kDefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
+const (
+	DefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
+	maxToolTurns    = 10 // 工具调用最大轮数
+)
 
 // LkeClient represents a client for interacting with the LKE service
 type LkeClient struct {
@@ -31,7 +37,7 @@ func NewLkeClient(botAppKey, sessionID string) *LkeClient {
 		botAppKey:    botAppKey,
 		sessionID:    sessionID,
 		visitorBizID: "123456789",
-		endpoint:     kDefaultEndpoint,
+		endpoint:     DefaultEndpoint,
 		eventHandler: nil,
 		toolsMap:     map[string]map[string]tool.FunctionTool{},
 	}
@@ -82,7 +88,9 @@ func (c *LkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 		c.toolsMap[agentName] = toolFuncMap
 	}
 	for _, tool := range tools {
-		toolFuncMap[tool.GetName()] = *tool
+		if tool != nil {
+			toolFuncMap[tool.GetName()] = *tool
+		}
 	}
 }
 func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatRequest {
@@ -95,7 +103,6 @@ func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatReq
 	if options != nil {
 		req.Options = *options
 	}
-	fmt.Print(len(c.toolsMap))
 	for agentName, toolFuncMap := range c.toolsMap {
 		if len(toolFuncMap) > 0 {
 			dynamicTool := model.DynamicTool{
@@ -107,15 +114,11 @@ func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatReq
 			req.DynamicTools = append(req.DynamicTools, dynamicTool)
 		}
 	}
-	bs, _ := json.MarshalIndent(req, "  ", "  ")
-	fmt.Println(string(bs))
 	return req
 }
 
-// Chat 对话接口，query 用户的输入，options 可选参数，可以为空
-func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
-	finalReply event.ReplyEvent, err error) {
-	req := c.buildReq(query, options)
+func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
+	finalReply *event.ReplyEvent, err error) {
 	sseCli := sse.NewClient(c.endpoint, func(c *sse.Client) {
 		body, _ := json.Marshal(req)
 		c.Body = bytes.NewReader(body)
@@ -160,7 +163,7 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 				reply := event.ReplyEvent{}
 				json.Unmarshal(ev.Payload, &reply)
 				if reply.IsFinal {
-					finalReply = reply
+					finalReply = &reply
 				}
 				c.eventHandler.Reply(&reply)
 				break
@@ -181,6 +184,130 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 	return finalReply, err
 }
 
-func (c LkeClient) Chat(query string, options *model.Options) (event.ReplyEvent, error) {
+func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
+	if reply == nil {
+		return
+	}
+	if reply.InterruptInfo == nil {
+		return
+	}
+	if output == nil {
+		return
+	}
+	if len(*output) != len(reply.InterruptInfo.ToolCalls) {
+		return
+	}
+	// 处理工具调用，并行调用工具
+	wg := sync.WaitGroup{}
+	for i := range reply.InterruptInfo.ToolCalls {
+		wg.Add(1)
+		go func(index int) {
+			toolCall := reply.InterruptInfo.ToolCalls[index]
+			if toolCall != nil {
+				defer func() {
+					if p := recover(); p != nil {
+						(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
+							toolCall.Function.Name, string(debug.Stack()))
+					}
+					wg.Done()
+				}()
+				toolFuncMap, ok := c.toolsMap[reply.InterruptInfo.CurrentAgent]
+				if !ok {
+					// agent map 未找到
+					(*output)[index] = fmt.Sprintf("The current agent %s toolset does not exist, try another tool",
+						reply.InterruptInfo.CurrentAgent)
+					return
+				}
+				f, ok := toolFuncMap[toolCall.Function.Name]
+				if !ok {
+					// tool name 未找到
+					(*output)[index] = fmt.Sprintf("Tool %s not found in currant agent %s's toolset, try another tool",
+						toolCall.Function.Name, reply.InterruptInfo.CurrentAgent)
+					return
+				}
+				input := map[string]interface{}{}
+				err := json.Unmarshal([]byte(toolCall.Function.Arguments), &input)
+				if err != nil {
+					// functional call 输出的函数参数有误
+					(*output)[index] = fmt.Sprintf("The parameters of the thinking process output are wrong, error: %v", err)
+					return
+				}
+				toolout, err := f.Execute(ctx, input)
+				if err != nil {
+					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
+						toolCall.Function.Name, err)
+					return
+				}
+				str, _ := tool.InterfaceToString(toolout)
+				(*output)[index] = str
+			} else {
+				// functional call 返回错误
+				(*output)[index] = fmt.Sprintf("The %dth tool of the thought process output is empty", index)
+			}
+		}(i)
+	}
+	wg.Wait()
+}
+
+// Chat 对话接口，query 用户的输入，options 可选参数，可以为空
+func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
+	finalReply *event.ReplyEvent, err error) {
+	req := c.buildReq(query, options)
+	for i := 0; i <= maxToolTurns; i++ {
+		reply, err := c.queryOnce(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if reply == nil {
+			return nil, fmt.Errorf("no final reply from server")
+		}
+		// if i == 0 {
+		// 	c.mockToolCall(reply) // mock tool call
+		// }
+		if reply.ReplyMethod != event.ReplyMethodInterrupt {
+			return reply, err
+		}
+		outputs := []string{}
+		if reply.InterruptInfo != nil {
+			outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
+		}
+		c.runTools(ctx, reply, &outputs)
+		fmt.Printf("%v\n", outputs)
+		req.LocalToolOuputs = nil
+		for i, out := range outputs {
+			req.LocalToolOuputs = append(req.LocalToolOuputs, model.LocalToolOuput{
+				ToolName: reply.InterruptInfo.ToolCalls[i].Function.Name,
+				Output:   out,
+			})
+		}
+	}
+	return nil, fmt.Errorf("reached maximum tool call turns")
+}
+
+func (c LkeClient) Chat(query string, options *model.Options) (*event.ReplyEvent, error) {
 	return c.ChatWithContext(context.Background(), query, options)
+}
+
+func (c LkeClient) mockToolCall(reply *event.ReplyEvent) {
+	for agentName, toolMap := range c.toolsMap {
+		reply.InterruptInfo = &event.InterruptInfo{
+			CurrentAgent: agentName,
+		}
+		for toolName, f := range toolMap {
+			reply.ReplyMethod = event.ReplyMethodInterrupt
+			jsonData := tool.GenerateRandomSchema(f.GetParametersSchema())
+			str, _ := tool.InterfaceToString(jsonData)
+			reply.InterruptInfo.ToolCalls = append(reply.InterruptInfo.ToolCalls,
+				&openai.ToolCallDeltaUnion{
+					Index: 1,
+					Type:  "function",
+					ID:    "mock-id",
+					Function: openai.FunctionToolCallDeltaFunction{
+						Name:      toolName,
+						Arguments: str,
+					},
+				},
+			)
+		}
+	}
 }

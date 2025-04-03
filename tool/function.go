@@ -2,10 +2,13 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // FunctionTool is a tool implemented as a Go function
@@ -561,4 +564,130 @@ func (t *FunctionTool) WithDescription(description string) *FunctionTool {
 func (t *FunctionTool) WithName(name string) *FunctionTool {
 	t.name = name
 	return t
+}
+
+// InterfaceToString 转换成 string
+func InterfaceToString(i interface{}) (string, error) {
+	// 使用反射判断类型
+	val := reflect.ValueOf(i)
+
+	// 如果是指针，获取其指向的值
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	// 判断是否是 map 或者结构体
+	if val.Kind() == reflect.Map || val.Kind() == reflect.Struct {
+		// 将其转换为 JSON 字符串
+		jsonBytes, err := json.Marshal(val.Interface())
+		if err != nil {
+			return "", err
+		}
+		return string(jsonBytes), nil
+	}
+
+	// 对于其他类型，直接转换为字符串
+	return fmt.Sprintf("%v", i), nil
+}
+
+// GenerateRandomData 根据 map 结构的 Schema 生成随机数据
+func GenerateRandomSchema(schema map[string]interface{}) interface{} {
+	// 优先处理 enum
+	if enum, ok := schema["enum"].([]interface{}); ok && len(enum) > 0 {
+		return enum[rand.Intn(len(enum))]
+	}
+
+	typeName, _ := schema["type"].(string)
+	switch typeName {
+	case "object":
+		return generateObject(schema)
+	case "array":
+		return generateArray(schema)
+	case "string":
+		return generateString(schema)
+	case "number", "integer":
+		return generateNumber(schema)
+	case "boolean":
+		return rand.Intn(2) == 1
+	default:
+		return nil
+	}
+}
+
+func generateObject(schema map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	if properties, ok := schema["properties"].(map[string]interface{}); ok {
+		for name, propSchema := range properties {
+			if childSchema, ok := propSchema.(map[string]interface{}); ok {
+				result[name] = GenerateRandomSchema(childSchema)
+			}
+		}
+	}
+	return result
+}
+
+func generateArray(schema map[string]interface{}) []interface{} {
+	length := rand.Intn(5) + 1 // 生成1-5个元素
+	if minItems, ok := schema["minItems"].(float64); ok {
+		length = int(minItems) + rand.Intn(5)
+	}
+
+	arr := make([]interface{}, length)
+	if items, ok := schema["items"].(map[string]interface{}); ok {
+		for i := range arr {
+			arr[i] = GenerateRandomSchema(items)
+		}
+	}
+	return arr
+}
+
+func generateString(schema map[string]interface{}) string {
+	// 处理可能的格式约束
+	if format, ok := schema["format"].(string); ok {
+		switch format {
+		case "date-time":
+			return time.Now().Format(time.RFC3339)
+		case "email":
+			return fmt.Sprintf("%s@%s.com", randomString(8), randomString(5))
+		}
+	}
+
+	// 处理长度约束
+	minLength := 5
+	if ml, ok := schema["minLength"].(float64); ok {
+		minLength = int(ml)
+	}
+	maxLength := minLength + 5
+	if ml, ok := schema["maxLength"].(float64); ok {
+		maxLength = int(ml)
+	}
+	return randomString(minLength + rand.Intn(maxLength-minLength+1))
+}
+
+func generateNumber(schema map[string]interface{}) float64 {
+	min := 0.0
+	max := 100.0
+
+	if mi, ok := schema["minimum"].(float64); ok {
+		min = mi
+	}
+	if ma, ok := schema["maximum"].(float64); ok {
+		max = ma
+	}
+
+	// 处理整数类型
+	if schema["type"] == "integer" {
+		return float64(int(min) + rand.Intn(int(max-min)+1))
+	}
+
+	return min + rand.Float64()*(max-min)
+}
+
+func randomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

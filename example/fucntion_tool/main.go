@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	kBotAppKey = "zIIRbxwI"
+	botAppKey = "zIIRbxwI"
 )
 
 type MyEventHandler struct {
@@ -36,11 +36,15 @@ type GetWeatherParams struct {
 
 // GetWeather 获取天气
 func GetWeather(ctx context.Context, params GetWeatherParams) (string, error) {
+	str, _ := tool.InterfaceToString(params)
+	fmt.Printf("call get weather: %s\n", str)
 	return fmt.Sprintf("%s%s日天气很好", params.Location.Address, params.Date), nil
 }
 
 // GetWeather 获取天气
 func GetWeather2(ctx context.Context, params map[string]interface{}) (string, error) {
+	str, _ := tool.InterfaceToString(params)
+	fmt.Printf("call get weather2: %s\n", str)
 	date, ok := params["Date"].(string)
 	if !ok {
 		return "", fmt.Errorf("miss Date param")
@@ -67,7 +71,7 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 
 func main() {
 	sessionId := uuid.New().String()
-	client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
+	client := lkesdk.NewLkeClient(botAppKey, sessionId)
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_10")
 	client.SetEventHandler(&MyEventHandler{})
 	// 方式1, 自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag,
@@ -118,7 +122,7 @@ func main() {
 	} else {
 		log.Panicf("不支持的函数定义: %v", err)
 	}
-	client.AddFunctionTools("agentB", tools)
+	client.AddFunctionTools("agentA", tools)
 	for {
 		reader := bufio.NewReader(os.Stdin)
 

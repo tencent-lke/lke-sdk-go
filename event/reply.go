@@ -60,7 +60,8 @@ type ReplyEvent struct {
 }
 
 type InterruptInfo struct {
-	ToolCalls []*openai.ToolCallDeltaUnion `json:"tool_calls"` // 需要本地调用的工具
+	CurrentAgent string                       `json:"current_agent"` // 当前 agent 的 name
+	ToolCalls    []*openai.ToolCallDeltaUnion `json:"tool_calls"`    // 需要本地调用的工具
 }
 
 // Name 事件名称
