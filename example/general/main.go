@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	kBotAppKey = "zIIRbxwI"
+	kBotAppKey = "xxxx"
 )
 
 type MyEventHandler struct {
@@ -33,8 +33,8 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 func main() {
 	sessionId := uuid.New().String()
 	client := lkesdk.NewLkeClient(kBotAppKey, sessionId)
-	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_10")
 	client.SetEventHandler(&MyEventHandler{})
+	client.SetMock(true)
 
 	for {
 		reader := bufio.NewReader(os.Stdin)

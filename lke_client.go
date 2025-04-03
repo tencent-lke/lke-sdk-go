@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/mark3labs/mcp-go/client"
 	"github.com/openai/openai-go"
 	"github.com/r3labs/sse/v2"
 	"github.com/tencent-lke/lke-sdk-go/event"
@@ -28,7 +29,8 @@ type LkeClient struct {
 	visitorBizID string // 访客 ID（外部系统提供，需确认不同的访客使用不同的 ID）
 	endpoint     string // 调用地址
 	eventHandler EventHandler
-	toolsMap     map[string]map[string]tool.FunctionTool // agentName -> map[toolname -> FunctionTool] 的映射
+	toolsMap     map[string]map[string]tool.Tool // agentName -> map[toolname -> FunctionTool] 的映射
+	mock         bool
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
@@ -38,8 +40,9 @@ func NewLkeClient(botAppKey, sessionID string) *LkeClient {
 		sessionID:    sessionID,
 		visitorBizID: "123456789",
 		endpoint:     DefaultEndpoint,
-		eventHandler: nil,
-		toolsMap:     map[string]map[string]tool.FunctionTool{},
+		eventHandler: DefaultEventHandler{},
+		toolsMap:     map[string]map[string]tool.Tool{},
+		mock:         false,
 	}
 }
 
@@ -77,6 +80,12 @@ func (c *LkeClient) SetEventHandler(eventHandler EventHandler) {
 	c.eventHandler = eventHandler
 }
 
+// SetEventHandler 设置时间处理函数
+func (c *LkeClient) SetMock(mock bool) {
+	c.mock = mock
+}
+
+// AddFunctionTools 增加函数 tools
 func (c *LkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionTool) {
 	if len(tools) == 0 {
 		return
@@ -84,15 +93,54 @@ func (c *LkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 
 	toolFuncMap, ok := c.toolsMap[agentName]
 	if !ok {
-		toolFuncMap = map[string]tool.FunctionTool{}
+		toolFuncMap = map[string]tool.Tool{}
 		c.toolsMap[agentName] = toolFuncMap
 	}
 	for _, tool := range tools {
 		if tool != nil {
-			toolFuncMap[tool.GetName()] = *tool
+			toolFuncMap[tool.GetName()] = tool
 		}
 	}
 }
+
+// AddMcpTools 增加 mcptools
+func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, selectTools []string) (
+	addTools []*tool.McpTool, err error) {
+	tools, err := tool.ListMcpTools(mcpClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tools: %v", err)
+	}
+	selectMap := map[string]struct{}{}
+	for _, t := range selectTools {
+		selectMap[t] = struct{}{}
+	}
+	toolMcpMap, ok := c.toolsMap[agentName]
+	if !ok {
+		toolMcpMap = map[string]tool.Tool{}
+		c.toolsMap[agentName] = toolMcpMap
+	}
+	for _, t := range tools.Tools {
+		add := true
+		if len(selectTools) > 0 {
+			if _, ok := selectMap[t.Name]; !ok {
+				add = false
+			}
+		}
+		if add {
+			newtool := &tool.McpTool{
+				Name:        t.Name,
+				Description: t.Description,
+				Cli:         mcpClient,
+			}
+			bs, _ := json.Marshal(t.InputSchema)
+			json.Unmarshal(bs, &newtool.Schame)
+			toolMcpMap[t.Name] = newtool
+			addTools = append(addTools, newtool)
+		}
+	}
+	return addTools, err
+}
+
 func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -109,7 +157,7 @@ func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatReq
 				AgentName: agentName,
 			}
 			for _, t := range toolFuncMap {
-				dynamicTool.Tools = append(dynamicTool.Tools, tool.ToOpenAIToolPB(&t))
+				dynamicTool.Tools = append(dynamicTool.Tools, tool.ToOpenAIToolPB(t))
 			}
 			req.DynamicTools = append(req.DynamicTools, dynamicTool)
 		}
@@ -126,9 +174,6 @@ func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 		c.Headers["Content-Type"] = "application/json"
 	})
 	handler := func(msg *sse.Event) {
-		if c.eventHandler == nil {
-			return
-		}
 		defer func() {
 			if p := recover(); p != nil {
 			}
@@ -165,7 +210,9 @@ func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 				if reply.IsFinal {
 					finalReply = &reply
 				}
-				c.eventHandler.Reply(&reply)
+				if reply.ReplyMethod != event.ReplyMethodInterrupt {
+					c.eventHandler.Reply(&reply)
+				}
 				break
 			}
 		case event.EventTokenStat:
@@ -249,9 +296,12 @@ func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 	wg.Wait()
 }
 
-// Chat 对话接口，query 用户的输入，options 可选参数，可以为空
+// ChatWithContext 对话，query 用户的输入，options 可选参数，可以为空
 func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
 	finalReply *event.ReplyEvent, err error) {
+	if c.mock {
+		return c.mockRun()
+	}
 	req := c.buildReq(query, options)
 	for i := 0; i <= maxToolTurns; i++ {
 		reply, err := c.queryOnce(ctx, req)
@@ -261,9 +311,6 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 		if reply == nil {
 			return nil, fmt.Errorf("no final reply from server")
 		}
-		// if i == 0 {
-		// 	c.mockToolCall(reply) // mock tool call
-		// }
 		if reply.ReplyMethod != event.ReplyMethodInterrupt {
 			return reply, err
 		}
@@ -272,7 +319,6 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 			outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
 		}
 		c.runTools(ctx, reply, &outputs)
-		fmt.Printf("%v\n", outputs)
 		req.LocalToolOuputs = nil
 		for i, out := range outputs {
 			req.LocalToolOuputs = append(req.LocalToolOuputs, model.LocalToolOuput{
@@ -284,11 +330,37 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 	return nil, fmt.Errorf("reached maximum tool call turns")
 }
 
+// Chat 对话，query 用户的输入，options 可选参数，可以为空
 func (c LkeClient) Chat(query string, options *model.Options) (*event.ReplyEvent, error) {
 	return c.ChatWithContext(context.Background(), query, options)
 }
 
+func (c LkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
+	reply := &event.ReplyEvent{
+		IsFinal: true,
+		Content: "mock text",
+	}
+	c.mockToolCall(reply)
+	outputs := []string{}
+	if reply.InterruptInfo != nil {
+		outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
+	}
+	c.runTools(context.Background(), reply, &outputs)
+	if c.mock {
+		for i, out := range outputs {
+			fmt.Printf("run tool %s, input: %s, output: %s\n", reply.InterruptInfo.ToolCalls[i].Function.Name,
+				reply.InterruptInfo.ToolCalls[i].Function.Arguments, out)
+		}
+	}
+	finalReply = &event.ReplyEvent{
+		IsFinal: true,
+		Content: "mock text",
+	}
+	return finalReply, err
+}
+
 func (c LkeClient) mockToolCall(reply *event.ReplyEvent) {
+	// mock tool call
 	for agentName, toolMap := range c.toolsMap {
 		reply.InterruptInfo = &event.InterruptInfo{
 			CurrentAgent: agentName,
@@ -309,5 +381,6 @@ func (c LkeClient) mockToolCall(reply *event.ReplyEvent) {
 				},
 			)
 		}
+		return
 	}
 }

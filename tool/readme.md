@@ -1,6 +1,6 @@
 # 使用函数 tool
 
-1. 方式1, 自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag，其中json tag 会转换参数名，doc tag 转换成字段描述
+1. 方式1：自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag，其中json tag 会转换参数名，doc tag 转换成字段描述。输出除了 error，只能有一个参数。
 ```go
 tools := []*tool.FunctionTool{}
 t, err := tool.NewFunctionTool("GetWeather", "查询天气", GetWeather, nil)
@@ -13,7 +13,7 @@ if err == nil {
 client.AddFunctionTools("agentA", tools)
 ```
 
-2. 方式2，自定义函数，除去 context，入参是一个严格的 map[string]interface{}，并且自定义 json schema。
+2. 方式2：自定义函数，除去 context，入参是一个严格的 map[string]interface{}，并且自定义 json schema。输出除了 error，只能有一个参数。
 ```go
 schema := map[string]interface{}{
   "properties": map[string]interface{}{

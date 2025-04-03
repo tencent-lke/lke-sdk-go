@@ -137,7 +137,6 @@ func (t *FunctionTool) Execute(ctx context.Context, params map[string]interface{
 				// Try to convert the parameter value to the expected type
 				convertedValue, err := convertToType(paramValue, paramType)
 				if err != nil {
-					fmt.Printf("hhhh")
 					return nil, fmt.Errorf("failed to convert parameter %s: %w", paramName, err)
 				}
 
