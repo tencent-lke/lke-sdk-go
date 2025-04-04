@@ -14,7 +14,6 @@ type ChatRequest struct {
 type Options struct {
 	RequestID         string            `json:"request_id,omitempty"`         // 请求ID，用于标识一个请求，建议每个请求使用不同的request_id，便于问题排查
 	FileInfos         []FileInfo        `json:"file_infos,omitempty"`         // 文件信息，如果填写该字段，content字段可以为空
-	SessionID         string            `json:"session_id"`                   // 会话ID，用于标识一个会话，建议不同用户端会话传入不同的session_id
 	VisitorLabels     []VisitorLabel    `json:"visitor_labels,omitempty"`     // 知识标签，用于知识库中知识的检索过滤（即将下线）
 	StreamingThrottle int32             `json:"streaming_throttle,omitempty"` // 流式回复频率控制，控制应用回包频率，默认值5
 	CustomVariables   map[string]string `json:"custom_variables,omitempty"`   // 自定义参数，可用于传递参数给工作流或设置知识库检索范围

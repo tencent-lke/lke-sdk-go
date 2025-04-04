@@ -16,19 +16,23 @@ import (
 )
 
 const (
-	botAppKey = "xxxxx"
+	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
+	botAppKey = "custom-app-key"
 )
 
+// MyEventHandler 自定义事件处理器
 type MyEventHandler struct {
 	lkesdk.DefaultEventHandler // 引用默认实现
 }
 
+// Location 地址
 type Location struct {
 	Address   string  `json:"Address" doc:"address of location"`
 	Latitude  float32 `json:"Latitude" doc:"latitude of location"`
 	Longitude float32 `json:"Longitude" doc:"longitude of location"`
 }
 
+// GetWeatherParams 获取天气的输入
 type GetWeatherParams struct {
 	Location Location `json:"Location" doc:"the location where you want to fetch the weather"`
 	Date     string   `json:"Date" doc:"date of the weather"`
@@ -41,7 +45,7 @@ func GetWeather(ctx context.Context, params GetWeatherParams) (string, error) {
 	return fmt.Sprintf("%s%s日天气很好", params.Location.Address, params.Date), nil
 }
 
-// GetWeather 获取天气
+// GetWeather2 获取天气
 func GetWeather2(ctx context.Context, params map[string]interface{}) (string, error) {
 	str, _ := tool.InterfaceToString(params)
 	fmt.Printf("call get weather2: %s\n", str)
@@ -70,9 +74,8 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 }
 
 func main() {
-	sessionId := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, sessionId)
-	client.SetEventHandler(&MyEventHandler{})
+	sessionID := uuid.New().String()
+	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
 	client.SetMock(true)
 	// 方式1, 自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag,
 	// json tag 会转换参数名，doc tag 转换成字段描述
@@ -137,11 +140,10 @@ func main() {
 		input = strings.TrimSuffix(input, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
-			RequestID:         "test",
 		}
-		finalReply, err := client.Chat(input, options)
+		finalReply, err := client.Run(input, sessionID, options)
 		if err != nil {
-			log.Fatalf("chat 出错: %v", err)
+			log.Fatalf("run error: %v", err)
 		}
 		log.Printf("finalReply: %v\n", finalReply.Content)
 	}

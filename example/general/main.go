@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	botAppKey = "xxxx"
+	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
+	botAppKey = "custom-app-key"
 )
 
+// MyEventHandler 创建自定义事件处理器
 type MyEventHandler struct {
 	lkesdk.DefaultEventHandler // 引用默认实现
 }
@@ -30,10 +32,16 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 	log.Printf("Reply: %v", reply.Content)
 }
 
+// Reply 自定义思考处理事件
+func (MyEventHandler) Thought(thought *event.AgentThoughtEvent) {
+	if len(thought.Procedures) > 0 {
+		log.Printf("Thought: %s\n", thought.Procedures[len(thought.Procedures)-1].Debugging.Content)
+	}
+}
+
 func main() {
-	sessionId := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, sessionId)
-	client.SetEventHandler(&MyEventHandler{})
+	sessionID := uuid.New().String()
+	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
 	// client.SetMock(true)
 
 	for {
@@ -50,11 +58,10 @@ func main() {
 		input = strings.TrimSuffix(input, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
-			RequestID:         "test",
 		}
-		finalReply, err := client.Chat(input, options)
+		finalReply, err := client.Run(input, sessionID, options)
 		if err != nil {
-			log.Fatalf("chat 出错: %v", err)
+			log.Fatalf("run error: %v", err)
 		}
 		log.Printf("finalReply: %v\n", finalReply.Content)
 	}

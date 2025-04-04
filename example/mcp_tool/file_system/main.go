@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
-	"runtime"
 	"strings"
 
 	"github.com/google/uuid"
@@ -21,14 +19,14 @@ const (
 	botAppKey = "custom-app-key"
 )
 
-func buildCustomStdioMcpClient() mcpclient.MCPClient {
-	_, f, _, _ := runtime.Caller(0)
-	serverPath := path.Join(path.Dir(f), "server", "server.go")
+func buildFileSystemStdioMcpClient() mcpclient.MCPClient {
+	// 需要先安装 nodejs
 	c, err := mcpclient.NewStdioMCPClient(
-		"go",
+		"npx",
 		[]string{}, // Empty ENV
-		"run",
-		serverPath,
+		"-y",
+		"@modelcontextprotocol/server-filesystem",
+		"/tmp",
 	)
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
@@ -41,9 +39,10 @@ func main() {
 	client := lkesdk.NewLkeClient(botAppKey, nil)
 	client.SetMock(true) // mock run
 
-	// 增加自定义 mcp 插件
-	c := buildCustomStdioMcpClient()
-	addTools, err := client.AddMcpTools("Agent-A", c, nil) // add all tools in mcp client
+	// 增加 npx mcp 插件
+	c := buildFileSystemStdioMcpClient()
+	// only add write_file, move_file tool
+	addTools, err := client.AddMcpTools("Agent-A", c, []string{"write_file", "move_file"})
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}
@@ -60,17 +59,17 @@ func main() {
 		fmt.Print("请输入你想问的问题：")
 
 		// 读取用户输入，直到遇到换行符
-		input, err := reader.ReadString('\n')
+		query, err := reader.ReadString('\n')
 		if err != nil {
 			log.Println("读取输入时出错:", err)
 			return
 		}
-		input = strings.TrimSuffix(input, "\n")
+		query = strings.TrimSuffix(query, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
 			RequestID:         "test",
 		}
-		finalReply, err := client.Run(input, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

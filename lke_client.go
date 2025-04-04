@@ -25,7 +25,6 @@ const (
 // LkeClient represents a client for interacting with the LKE service
 type LkeClient struct {
 	botAppKey    string // 机器人密钥 (从运营接口人处获取)
-	sessionID    string // 会话 ID（外部系统提供，不能为空）
 	visitorBizID string // 访客 ID（外部系统提供，需确认不同的访客使用不同的 ID）
 	endpoint     string // 调用地址
 	eventHandler EventHandler
@@ -34,13 +33,17 @@ type LkeClient struct {
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
-func NewLkeClient(botAppKey, sessionID string) *LkeClient {
+// eventHandler 自定义事件处理
+func NewLkeClient(botAppKey string, eventHandler EventHandler) *LkeClient {
+	handler := eventHandler
+	if handler == nil {
+		handler = &DefaultEventHandler{}
+	}
 	return &LkeClient{
 		botAppKey:    botAppKey,
-		sessionID:    sessionID,
 		visitorBizID: "123456789",
 		endpoint:     DefaultEndpoint,
-		eventHandler: DefaultEventHandler{},
+		eventHandler: handler,
 		toolsMap:     map[string]map[string]tool.Tool{},
 		mock:         false,
 	}
@@ -50,19 +53,9 @@ func (c LkeClient) GetBotAppKey() string {
 	return c.botAppKey
 }
 
-// GetSessionID returns the session ID
-func (c LkeClient) GetSessionID() string {
-	return c.sessionID
-}
-
 // SetBotAppKey sets the bot application key
 func (c *LkeClient) SetBotAppKey(botAppKey string) {
 	c.botAppKey = botAppKey
-}
-
-// SetSessionID sets the session ID
-func (c *LkeClient) SetSessionID(sessionID string) {
-	c.sessionID = sessionID
 }
 
 // GetEndpoint returns the endpoint URL
@@ -141,12 +134,12 @@ func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, se
 	return addTools, err
 }
 
-func (c LkeClient) buildReq(query string, options *model.Options) *model.ChatRequest {
+func (c LkeClient) buildReq(query, sessionID string, options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
 		VisitorBizID: c.visitorBizID,
 		BotAppKey:    c.botAppKey,
-		SessionID:    c.sessionID,
+		SessionID:    sessionID,
 	}
 	if options != nil {
 		req.Options = *options
@@ -296,13 +289,14 @@ func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 	wg.Wait()
 }
 
-// ChatWithContext 对话，query 用户的输入，options 可选参数，可以为空
-func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *model.Options) (
-	finalReply *event.ReplyEvent, err error) {
+// RunWithContext 执行 agent with context，query 用户的输入
+// sesionID 对话唯一标识，options 可选参数，可以为空
+func (c LkeClient) RunWithContext(ctx context.Context, query, sesionID string,
+	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
 		return c.mockRun()
 	}
-	req := c.buildReq(query, options)
+	req := c.buildReq(query, sesionID, options)
 	for i := 0; i <= maxToolTurns; i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {
@@ -330,9 +324,10 @@ func (c LkeClient) ChatWithContext(ctx context.Context, query string, options *m
 	return nil, fmt.Errorf("reached maximum tool call turns")
 }
 
-// Chat 对话，query 用户的输入，options 可选参数，可以为空
-func (c LkeClient) Chat(query string, options *model.Options) (*event.ReplyEvent, error) {
-	return c.ChatWithContext(context.Background(), query, options)
+// Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
+func (c LkeClient) Run(query, sesionID string,
+	options *model.Options) (*event.ReplyEvent, error) {
+	return c.RunWithContext(context.Background(), query, sesionID, options)
 }
 
 func (c LkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
