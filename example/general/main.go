@@ -50,16 +50,16 @@ func main() {
 		fmt.Print("请输入你想问的问题：")
 
 		// 读取用户输入，直到遇到换行符
-		input, err := reader.ReadString('\n')
+		query, err := reader.ReadString('\n')
 		if err != nil {
 			log.Println("读取输入时出错:", err)
 			return
 		}
-		input = strings.TrimSuffix(input, "\n")
+		query = strings.TrimSuffix(query, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
 		}
-		finalReply, err := client.Run(input, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}
