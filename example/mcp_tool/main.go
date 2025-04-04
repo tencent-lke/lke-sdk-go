@@ -68,7 +68,6 @@ func main() {
 		query = strings.TrimSuffix(query, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
-			RequestID:         "test",
 		}
 		finalReply, err := client.Run(query, sessionID, options)
 		if err != nil {

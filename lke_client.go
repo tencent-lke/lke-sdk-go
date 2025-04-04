@@ -106,7 +106,7 @@ func (c *LkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, selectTools []string) (
+func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
 	tools, err := tool.ListMcpTools(mcpClient)
 	if err != nil {
