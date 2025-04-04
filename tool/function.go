@@ -25,7 +25,7 @@ func NewFunctionTool(name, description string, fn interface{}, schema map[string
 	// Validate that fn is a function
 	fnType := reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		return nil, fmt.Errorf("fn is not fucntion, function tool must be a function")
+		return nil, fmt.Errorf("fn is not function, function tool must be a function")
 	}
 
 	// Generate schema from function signature

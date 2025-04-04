@@ -73,7 +73,7 @@ for {
 
 ## 使用本地 tool
 
-### fucntion tool
+### function tool
 
 #### Usage
 `client.AddFunctionTools("agentA", tools)`
@@ -105,7 +105,7 @@ func GetWeather(ctx context.Context, params GetWeatherParams) (string, error) {
   return fmt.Sprintf("%s%s日天气很好", params.Location.Address, params.Date), nil
 }
 
-// 使用 fucntion 构建 tool
+// 使用 function 构建 tool
 tools := []*tool.FunctionTool{}
 t, err := tool.NewFunctionTool("GetWeather", "查询天气", GetWeather, nil)
 if err == nil {
@@ -183,9 +183,9 @@ client.AddFunctionTools("Agent-B", tools)
 ```
 
 #### Example
-`go run example/fucntion_tool/main.go`
+`go run example/function_tool/main.go`
 
-详细示例 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/fucntion_tool/main.go)
+详细示例 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/function_tool/main.go)
 
 ### mcp tool
 
