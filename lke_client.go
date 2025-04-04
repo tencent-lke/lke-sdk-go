@@ -11,10 +11,10 @@ import (
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/openai/openai-go"
-	"github.com/r3labs/sse/v2"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
+	sse "github.com/tmaxmax/go-sse"
 )
 
 const (
@@ -30,6 +30,7 @@ type LkeClient struct {
 	eventHandler EventHandler
 	toolsMap     map[string]map[string]tool.Tool // agentName -> map[toolname -> FunctionTool] 的映射
 	mock         bool
+	httpClient   *http.Client
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
@@ -46,6 +47,7 @@ func NewLkeClient(botAppKey string, eventHandler EventHandler) *LkeClient {
 		eventHandler: handler,
 		toolsMap:     map[string]map[string]tool.Tool{},
 		mock:         false,
+		httpClient:   http.DefaultClient,
 	}
 }
 
@@ -73,9 +75,16 @@ func (c *LkeClient) SetEventHandler(eventHandler EventHandler) {
 	c.eventHandler = eventHandler
 }
 
-// SetEventHandler 设置时间处理函数
+// SetMock 设置 Mock
 func (c *LkeClient) SetMock(mock bool) {
 	c.mock = mock
+}
+
+// SetHttpClient 设置自定义 http client
+func (c *LkeClient) SetHttpClient(cli *http.Client) {
+	if cli != nil {
+		c.httpClient = cli
+	}
 }
 
 // AddFunctionTools 增加函数 tools
@@ -158,70 +167,83 @@ func (c LkeClient) buildReq(query, sessionID string, options *model.Options) *mo
 	return req
 }
 
-func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
-	finalReply *event.ReplyEvent, err error) {
-	sseCli := sse.NewClient(c.endpoint, func(c *sse.Client) {
-		body, _ := json.Marshal(req)
-		c.Body = bytes.NewReader(body)
-		c.Method = http.MethodPost
-		c.Headers["Content-Type"] = "application/json"
-	})
-	handler := func(msg *sse.Event) {
-		defer func() {
-			if p := recover(); p != nil {
+func (c LkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+		}
+	}()
+	ev := event.EventWrapper{}
+	_ = json.Unmarshal(data, &ev)
+	switch ev.Type {
+	case event.EventError:
+		{
+			errEvent := event.ErrorEvent{}
+			json.Unmarshal(data, &errEvent)
+			err = fmt.Errorf("get error event: %s", string(data))
+			c.eventHandler.Error(&errEvent)
+			return nil, err
+		}
+	case event.EventReference:
+		{
+			refer := event.ReferenceEvent{}
+			json.Unmarshal(ev.Payload, &refer)
+			c.eventHandler.Reference(&refer)
+			return nil, nil
+		}
+	case event.EventThought:
+		{
+			thought := event.AgentThoughtEvent{}
+			json.Unmarshal(ev.Payload, &thought)
+			c.eventHandler.Thought(&thought)
+			return nil, nil
+		}
+	case event.EventReply:
+		{
+			reply := event.ReplyEvent{}
+			json.Unmarshal(ev.Payload, &reply)
+			if reply.IsFinal {
+				finalReply = &reply
 			}
-		}()
-		ev := event.EventWrapper{}
-		_ = json.Unmarshal(msg.Data, &ev)
-		switch ev.Type {
-		case event.EventError:
-			{
-				errEvent := event.ErrorEvent{}
-				json.Unmarshal(msg.Data, &errEvent)
-				err = fmt.Errorf("get error event: %s", string(msg.Data))
-				c.eventHandler.Error(&errEvent)
-				break
+			if reply.ReplyMethod != event.ReplyMethodInterrupt {
+				c.eventHandler.Reply(&reply)
 			}
-		case event.EventReference:
-			{
-				refer := event.ReferenceEvent{}
-				json.Unmarshal(ev.Payload, &refer)
-				c.eventHandler.Reference(&refer)
-				break
-			}
-		case event.EventThought:
-			{
-				thought := event.AgentThoughtEvent{}
-				json.Unmarshal(ev.Payload, &thought)
-				c.eventHandler.Thought(&thought)
-				break
-			}
-		case event.EventReply:
-			{
-				reply := event.ReplyEvent{}
-				json.Unmarshal(ev.Payload, &reply)
-				if reply.IsFinal {
-					finalReply = &reply
-				}
-				if reply.ReplyMethod != event.ReplyMethodInterrupt {
-					c.eventHandler.Reply(&reply)
-				}
-				break
-			}
-		case event.EventTokenStat:
-			{
-				tokenStat := event.TokenStatEvent{}
-				json.Unmarshal(ev.Payload, &tokenStat)
-				c.eventHandler.TokenStat(&tokenStat)
-				break
-			}
+			return finalReply, nil
+		}
+	case event.EventTokenStat:
+		{
+			tokenStat := event.TokenStatEvent{}
+			json.Unmarshal(ev.Payload, &tokenStat)
+			c.eventHandler.TokenStat(&tokenStat)
+			return finalReply, nil
 		}
 	}
-	e := sseCli.SubscribeRawWithContext(ctx, handler)
-	if e != nil {
-		err = e
+	return nil, nil
+}
+
+func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
+	finalReply *event.ReplyEvent, finalErr error) {
+	bs, _ := json.Marshal(req)
+	payload := bytes.NewReader(bs)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
+	if err != nil {
+		return nil, fmt.Errorf("NewRequestWithContext error: %v", err)
 	}
-	return finalReply, err
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	res, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("httpClient do request error: %v", err)
+	}
+	defer res.Body.Close() // don't forget!!
+
+	for ev, err := range sse.Read(res.Body, nil) {
+		if err != nil {
+			return nil, fmt.Errorf("sse.Read error: %v", err)
+		}
+		finalReply, finalErr = c.handlerEvent([]byte(ev.Data))
+	}
+	return finalReply, finalErr
 }
 
 func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
