@@ -113,7 +113,7 @@ func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, se
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
 	selectMap := map[string]struct{}{}
-	for _, t := range selectTools {
+	for _, t := range selectedToolNames {
 		selectMap[t] = struct{}{}
 	}
 	toolMcpMap, ok := c.toolsMap[agentName]
@@ -123,7 +123,7 @@ func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, se
 	}
 	for _, t := range tools.Tools {
 		add := true
-		if len(selectTools) > 0 {
+		if len(selectedToolNames) > 0 {
 			if _, ok := selectMap[t.Name]; !ok {
 				add = false
 			}
