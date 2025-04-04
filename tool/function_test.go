@@ -44,7 +44,7 @@ func assertMap(t *testing.T, except, actual map[string]interface{}) bool {
 	return false
 }
 
-func TestFucntionSchema1(t *testing.T) {
+func TestFunctionSchema1(t *testing.T) {
 	// struct
 	type Add struct {
 		A int `json:"a" doc:"number a"`
@@ -86,7 +86,7 @@ func TestFucntionSchema1(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema2(t *testing.T) {
+func TestFunctionSchema2(t *testing.T) {
 	// 部分 tag 丢失，会缺省
 	type Add struct {
 		A int `doc:"number a"`
@@ -126,7 +126,7 @@ func TestFucntionSchema2(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema3(t *testing.T) {
+func TestFunctionSchema3(t *testing.T) {
 	// 用用户自定义的 schema
 	type Add struct {
 		A int `doc:"number a"`
@@ -168,7 +168,7 @@ func TestFucntionSchema3(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema4(t *testing.T) {
+func TestFunctionSchema4(t *testing.T) {
 	// 嵌套的 struct
 	type B struct {
 		B string `json:"b" doc:"string b"`
@@ -210,7 +210,7 @@ func TestFucntionSchema4(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema5(t *testing.T) {
+func TestFunctionSchema5(t *testing.T) {
 	// 嵌套 interface{}
 	type Add struct {
 		A int         `json:"a" doc:"number a"`
@@ -252,7 +252,7 @@ func TestFucntionSchema5(t *testing.T) {
 
 }
 
-func TestFucntionSchema6(t *testing.T) {
+func TestFunctionSchema6(t *testing.T) {
 	// 不需要参数
 	structAdd := func() int {
 		return 0
@@ -281,7 +281,7 @@ func TestFucntionSchema6(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema7(t *testing.T) {
+func TestFunctionSchema7(t *testing.T) {
 	// map[string]interface{} 函数
 	structAdd := func(params map[string]interface{}) int {
 		a, oka := params["a"].(int)
@@ -328,7 +328,7 @@ func TestFucntionSchema7(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema8(t *testing.T) {
+func TestFunctionSchema8(t *testing.T) {
 	// map[string]interface{} 函数
 	structAdd := func(params map[string]interface{}) int {
 		a, oka := params["a"].(int)
@@ -344,7 +344,7 @@ func TestFucntionSchema8(t *testing.T) {
 	}
 }
 
-func TestFucntionSchema9(t *testing.T) {
+func TestFunctionSchema9(t *testing.T) {
 	// 不支持的函数
 	func1 := func(ctx context.Context, x int) int {
 		return 0
@@ -401,7 +401,7 @@ func TestFucntionSchema9(t *testing.T) {
 	}
 }
 
-func TestFucntionSchema10(t *testing.T) {
+func TestFunctionSchema10(t *testing.T) {
 	// struct 中包含数组
 	type Add struct {
 		A int   `json:"a" doc:"number a"`
@@ -454,7 +454,7 @@ func TestFucntionSchema10(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionSchema11(t *testing.T) {
+func TestFunctionSchema11(t *testing.T) {
 	// struct 中包含结构体数组
 	type B struct {
 		B int `json:"b" doc:"number b"`
@@ -518,7 +518,7 @@ func TestFucntionSchema11(t *testing.T) {
 	assertMap(t, excepetSchema, to.GetParametersSchema())
 }
 
-func TestFucntionExec1(t *testing.T) {
+func TestFunctionExec1(t *testing.T) {
 	// struct 正常完全
 	ctx := context.Background()
 	type Add struct {
@@ -660,7 +660,7 @@ func TestFucntionExec1(t *testing.T) {
 	}
 }
 
-func TestFucntionExec2(t *testing.T) {
+func TestFunctionExec2(t *testing.T) {
 	ctx := context.Background()
 	// 部分 tag 丢失，会缺省
 	type Add struct {
@@ -694,7 +694,7 @@ func TestFucntionExec2(t *testing.T) {
 	}
 }
 
-func TestFucntionExec3(t *testing.T) {
+func TestFunctionExec3(t *testing.T) {
 	ctx := context.Background()
 	// 用用户自定义的 schema和解析对应不上，用默认值
 	type Add struct {
@@ -742,7 +742,7 @@ func TestFucntionExec3(t *testing.T) {
 	}
 }
 
-func TestFucntionExec4(t *testing.T) {
+func TestFunctionExec4(t *testing.T) {
 	ctx := context.Background()
 	// 嵌套的 struct
 	type B struct {
@@ -781,7 +781,7 @@ func TestFucntionExec4(t *testing.T) {
 	}
 }
 
-func TestFucntionExec5(t *testing.T) {
+func TestFunctionExec5(t *testing.T) {
 	ctx := context.Background()
 	// 嵌套 interface{}
 	type Add struct {
@@ -816,7 +816,7 @@ func TestFucntionExec5(t *testing.T) {
 	}
 }
 
-func TestFucntionExec6(t *testing.T) {
+func TestFunctionExec6(t *testing.T) {
 	ctx := context.Background()
 	// 不需要参数
 	structAdd := func() int {
@@ -847,7 +847,7 @@ func TestFucntionExec6(t *testing.T) {
 	}
 }
 
-func TestFucntionExec7(t *testing.T) {
+func TestFunctionExec7(t *testing.T) {
 	ctx := context.Background()
 	// map[string]interface{} 函数
 	structAdd := func(params map[string]interface{}) int {
@@ -896,7 +896,7 @@ func TestFucntionExec7(t *testing.T) {
 	}
 }
 
-func TestFucntionExec10(t *testing.T) {
+func TestFunctionExec10(t *testing.T) {
 	ctx := context.Background()
 	// struct 中包含数组
 	type Add struct {
@@ -934,7 +934,7 @@ func TestFucntionExec10(t *testing.T) {
 	}
 }
 
-func TestFucntionExec11(t *testing.T) {
+func TestFunctionExec11(t *testing.T) {
 	ctx := context.Background()
 	// struct 中包含结构体数组
 	type B struct {
