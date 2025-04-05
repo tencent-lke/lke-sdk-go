@@ -63,7 +63,7 @@ func buildSeeMcpClient() mcpclient.MCPClient {
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, nil)
-	client.SetMock(true) // mock run
+	// client.SetMock(true) // mock run
 
 	// 增加 sse 插件
 	c := buildSeeMcpClient()

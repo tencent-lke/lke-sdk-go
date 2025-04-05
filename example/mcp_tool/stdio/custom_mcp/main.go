@@ -39,7 +39,7 @@ func buildCustomStdioMcpClient() mcpclient.MCPClient {
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, nil)
-	client.SetMock(true) // mock run
+	// client.SetMock(true) // mock run
 
 	// 增加自定义 mcp 插件
 	c := buildCustomStdioMcpClient()

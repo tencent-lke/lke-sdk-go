@@ -37,7 +37,7 @@ func buildFileSystemStdioMcpClient() mcpclient.MCPClient {
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, nil)
-	client.SetMock(true) // mock run
+	// client.SetMock(true) // mock run
 
 	// 增加 npx mcp 插件
 	c := buildFileSystemStdioMcpClient()
