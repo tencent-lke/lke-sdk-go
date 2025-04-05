@@ -196,7 +196,7 @@ client.AddFunctionTools("Agent-B", tools)
 
 
 
-1. 增加自定义 stdio mcp
+1. 增加自定义 stdio mcp tools
 ```go
 func addCustomStdioMcp(client *lkesdk.LkeClient) {
   _, f, _, _ := runtime.Caller(0)
@@ -222,7 +222,7 @@ func addCustomStdioMcp(client *lkesdk.LkeClient) {
 }
 ```
 
-2. 增加第三方 stdio mcp tool
+2. 增加第三方 stdio mcp tools
 
 ```go
 func addFileSystemStdioMcp(client *lkesdk.LkeClient) {
@@ -251,7 +251,7 @@ func addFileSystemStdioMcp(client *lkesdk.LkeClient) {
 ```
 
 
-3. 增加第三方 sse mcp tool
+3. 增加第三方 sse mcp tools
 
 ```go
 sseUrl := "https://xxxx.com/sse"
@@ -274,7 +274,6 @@ for _, tools := range addTools {
 ```
 
 #### Example
-`go run example/mcp_tool/main.go`
 
-详细示例 [main.go](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/mcp_tool/main.go)
+示例 [mcp_tool](https://github.com/tencent-lke/lke-sdk-go/blob/main/example/mcp_tool/)
 

@@ -23,7 +23,7 @@ const (
 
 func buildCustomStdioMcpClient() mcpclient.MCPClient {
 	_, f, _, _ := runtime.Caller(0)
-	serverPath := path.Join(path.Dir(f), "server", "server.go")
+	serverPath := path.Join(path.Dir(f), "custom_server", "server.go")
 	c, err := mcpclient.NewStdioMCPClient(
 		"go",
 		[]string{}, // Empty ENV
