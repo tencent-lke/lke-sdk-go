@@ -43,6 +43,7 @@ func main() {
 
 	// 增加自定义 mcp 插件
 	c := buildCustomStdioMcpClient()
+	defer c.Close()
 	addTools, err := client.AddMcpTools("Agent-A", c, nil) // add all tools in mcp client
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)

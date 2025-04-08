@@ -1,41 +1,50 @@
 package lkesdk
 
-import "github.com/tencent-lke/lke-sdk-go/event"
+import (
+	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/tool"
+)
 
 // EventHandler 事件处理的接口，用户可以用默认的实现，也可以自定义
 type EventHandler interface {
 
-	// Error 错误处理
-	Error(err *event.ErrorEvent)
+	// OnError 错误处理
+	OnError(err *event.ErrorEvent)
 
-	// Reply 回复处理
-	Reply(reply *event.ReplyEvent)
+	// OnReply 回复处理
+	OnReply(reply *event.ReplyEvent)
 
-	// Thought 思考过程处理
-	Thought(thought *event.AgentThoughtEvent)
+	// OnThought 思考过程处理
+	OnThought(thought *event.AgentThoughtEvent)
 
-	// Reference 引用事件处理
-	Reference(refer *event.ReferenceEvent)
+	// OnReference 引用事件处理
+	OnReference(refer *event.ReferenceEvent)
 
-	// TokenStat token 统计事件
-	TokenStat(stat *event.TokenStatEvent)
+	// OnTokenStat token 统计事件
+	OnTokenStat(stat *event.TokenStatEvent)
+
+	// ToolCallHook 工具调用的后的钩子
+	ToolCallHook(tool tool.Tool, output interface{}, err error)
 }
 
 // DefaultEventHandler 默认事件处理
 type DefaultEventHandler struct {
 }
 
-// Error 错误处理
-func (DefaultEventHandler) Error(err *event.ErrorEvent) {}
+// OnError 错误处理
+func (DefaultEventHandler) OnError(err *event.ErrorEvent) {}
 
-// Reply 回复处理
-func (DefaultEventHandler) Reply(reply *event.ReplyEvent) {}
+// OnReply 回复处理
+func (DefaultEventHandler) OnReply(reply *event.ReplyEvent) {}
 
-// Thought 思考过程处理
-func (DefaultEventHandler) Thought(thought *event.AgentThoughtEvent) {}
+// OnThought 思考过程处理
+func (DefaultEventHandler) OnThought(thought *event.AgentThoughtEvent) {}
 
-// Reference 引用事件处理
-func (DefaultEventHandler) Reference(refer *event.ReferenceEvent) {}
+// OnReference 引用事件处理
+func (DefaultEventHandler) OnReference(refer *event.ReferenceEvent) {}
 
-// TokenStat token 统计事件
-func (DefaultEventHandler) TokenStat(stat *event.TokenStatEvent) {}
+// OnTokenStattoken 统计事件
+func (DefaultEventHandler) OnTokenStat(stat *event.TokenStatEvent) {}
+
+// ToolCallHook 工具调用后钩子
+func (DefaultEventHandler) ToolCallHook(tool tool.Tool, output interface{}, err error) {}

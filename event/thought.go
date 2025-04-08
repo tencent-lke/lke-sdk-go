@@ -14,7 +14,8 @@ const EventThought = "thought"
 type AgentThoughtEvent struct {
 	SessionID string `json:"session_id"` // 会话 ID
 	RequestID string `json:"request_id"` // 请求 ID
-	RecordID  string `json:"record_id"`  // 对应哪条会话, 会话 ID, 用于回答的消息存储使用, 可提前生成, 保存消息时使用
+	TraceId   string `json:"trace_id"`
+	RecordID  string `json:"record_id"` // 对应哪条会话, 会话 ID, 用于回答的消息存储使用, 可提前生成, 保存消息时使用
 
 	Elapsed      uint32           `json:"elapsed"`       // 当前请求执行时间, 单位 ms
 	IsWorkflow   bool             `json:"is_workflow"`   // 是否是工作流

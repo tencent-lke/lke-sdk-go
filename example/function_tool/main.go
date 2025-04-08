@@ -64,8 +64,8 @@ func GetWeather2(ctx context.Context, params map[string]interface{}) (string, er
 	return fmt.Sprintf("%s%s日天气很好", date, address), nil
 }
 
-// Reply 自定义回复处理事件
-func (MyEventHandler) Reply(reply *event.ReplyEvent) {
+// OnReply 自定义回复处理事件
+func (MyEventHandler) OnReply(reply *event.ReplyEvent) {
 	if reply.IsFromSelf {
 		// 过滤输入重复回包
 		return

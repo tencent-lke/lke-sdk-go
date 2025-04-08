@@ -51,6 +51,7 @@ func NewLkeClient(botAppKey string, eventHandler EventHandler) *LkeClient {
 	}
 }
 
+// GetBotAppKey 获取 BotAppKey
 func (c LkeClient) GetBotAppKey() string {
 	return c.botAppKey
 }
@@ -180,21 +181,21 @@ func (c LkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 			errEvent := event.ErrorEvent{}
 			json.Unmarshal(data, &errEvent)
 			err = fmt.Errorf("get error event: %s", string(data))
-			c.eventHandler.Error(&errEvent)
+			c.eventHandler.OnError(&errEvent)
 			return nil, err
 		}
 	case event.EventReference:
 		{
 			refer := event.ReferenceEvent{}
 			json.Unmarshal(ev.Payload, &refer)
-			c.eventHandler.Reference(&refer)
+			c.eventHandler.OnReference(&refer)
 			return nil, nil
 		}
 	case event.EventThought:
 		{
 			thought := event.AgentThoughtEvent{}
 			json.Unmarshal(ev.Payload, &thought)
-			c.eventHandler.Thought(&thought)
+			c.eventHandler.OnThought(&thought)
 			return nil, nil
 		}
 	case event.EventReply:
@@ -205,7 +206,7 @@ func (c LkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 				finalReply = &reply
 			}
 			if reply.ReplyMethod != event.ReplyMethodInterrupt {
-				c.eventHandler.Reply(&reply)
+				c.eventHandler.OnReply(&reply)
 			}
 			return finalReply, nil
 		}
@@ -213,7 +214,7 @@ func (c LkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 		{
 			tokenStat := event.TokenStatEvent{}
 			json.Unmarshal(ev.Payload, &tokenStat)
-			c.eventHandler.TokenStat(&tokenStat)
+			c.eventHandler.OnTokenStat(&tokenStat)
 			return finalReply, nil
 		}
 	}
@@ -295,6 +296,7 @@ func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 					return
 				}
 				toolout, err := f.Execute(ctx, input)
+				go c.eventHandler.ToolCallHook(f, output, err)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)

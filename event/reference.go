@@ -7,7 +7,7 @@ const (
 	ReferTypeDoc     = 3
 )
 
-// Reference 参考来源
+// OnReference 参考来源
 type Reference struct {
 	ID       uint64 `json:"id,string"`
 	Type     uint32 `json:"type"`

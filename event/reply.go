@@ -4,7 +4,7 @@ import (
 	openai "github.com/openai/openai-go"
 )
 
-// ReplyMethod 回复方式
+// OnReplyMethod 回复方式
 type ReplyMethod uint8
 
 // 回复方式
@@ -34,10 +34,11 @@ const (
 // EventReply 回复/确认事件
 const EventReply = "reply"
 
-// ReplyEvent 回复/确认事件消息体
+// OnReplyEvent 回复/确认事件消息体
 type ReplyEvent struct {
 	RequestID       string           `json:"request_id"`
 	SessionID       string           `json:"session_id"`
+	TraceId         string           `json:"trace_id"`
 	Content         string           `json:"content"`
 	FromName        string           `json:"from_name"`
 	FromAvatar      string           `json:"from_avatar"`
@@ -69,13 +70,13 @@ func (e ReplyEvent) Name() string {
 	return EventReply
 }
 
-// ReplyKnowledge 回复事件中的知识
+// OnReplyKnowledge 回复事件中的知识
 type ReplyKnowledge struct {
 	ID   string `json:"id"`
 	Type uint32 `json:"type"`
 }
 
-// ReplyTag 回复事件中的标签
+// OnReplyTag 回复事件中的标签
 type ReplyTag struct {
 	Name       string   `json:"name"`        // 标签名称
 	ValueRange []string `json:"value_range"` // 命中标签的范围

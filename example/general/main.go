@@ -23,8 +23,8 @@ type MyEventHandler struct {
 	lkesdk.DefaultEventHandler // 引用默认实现
 }
 
-// Reply 自定义回复处理事件
-func (MyEventHandler) Reply(reply *event.ReplyEvent) {
+// OnReply 自定义回复处理事件
+func (MyEventHandler) OnReply(reply *event.ReplyEvent) {
 	if reply.IsFromSelf {
 		// 过滤输入重复回包
 		return
@@ -32,8 +32,8 @@ func (MyEventHandler) Reply(reply *event.ReplyEvent) {
 	log.Printf("Reply: %v", reply.Content)
 }
 
-// Reply 自定义思考处理事件
-func (MyEventHandler) Thought(thought *event.AgentThoughtEvent) {
+// OnReply 自定义思考处理事件
+func (MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 	if len(thought.Procedures) > 0 {
 		log.Printf("Thought: %s\n", thought.Procedures[len(thought.Procedures)-1].Debugging.Content)
 	}

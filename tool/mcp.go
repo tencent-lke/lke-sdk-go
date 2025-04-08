@@ -45,14 +45,18 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	if err != nil {
 		return nil, err
 	}
-	totalResult := ""
+	totalResult := []string{}
 	for _, content := range result.Content {
 		if textContent, ok := content.(mcp.TextContent); ok {
-			totalResult = totalResult + textContent.Text
+			totalResult = append(totalResult, textContent.Text)
 		} else {
 			jsonBytes, _ := json.Marshal(content)
-			totalResult = totalResult + string(jsonBytes)
+			totalResult = append(totalResult, string(jsonBytes))
 		}
+	}
+
+	if len(totalResult) == 1 {
+		return totalResult, nil
 	}
 	return totalResult, nil
 }
