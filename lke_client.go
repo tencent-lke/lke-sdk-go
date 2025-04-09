@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"sync"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/openai/openai-go"
+	"github.com/sirupsen/logrus"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -28,21 +30,27 @@ type LkeClient struct {
 	visitorBizID string // 访客 ID（外部系统提供，需确认不同的访客使用不同的 ID）
 	endpoint     string // 调用地址
 	eventHandler EventHandler
-	toolsMap     map[string]map[string]tool.Tool // agentName -> map[toolname -> FunctionTool] 的映射
 	mock         bool
 	httpClient   *http.Client
+
+	toolsMap         map[string]map[string]tool.Tool // agentName -> map[toolname -> FunctionTool] 的映射
+	agents           []model.Agent
+	handoffs         []model.Handoff
+	disableSystemOpt bool
+	startAgent       string
+	logger           *logrus.Logger
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
 // eventHandler 自定义事件处理
-func NewLkeClient(botAppKey string, eventHandler EventHandler) *LkeClient {
+func NewLkeClient(botAppKey, visitorBizID string, eventHandler EventHandler) *LkeClient {
 	handler := eventHandler
 	if handler == nil {
 		handler = &DefaultEventHandler{}
 	}
 	return &LkeClient{
 		botAppKey:    botAppKey,
-		visitorBizID: "123456789",
+		visitorBizID: visitorBizID,
 		endpoint:     DefaultEndpoint,
 		eventHandler: handler,
 		toolsMap:     map[string]map[string]tool.Tool{},
@@ -81,10 +89,36 @@ func (c *LkeClient) SetMock(mock bool) {
 	c.mock = mock
 }
 
+// DisableSystemOpt 配置 agent 运行时的系统优化开关
+func (c *LkeClient) SetDisableSystemOpt(disable bool) {
+	c.disableSystemOpt = disable
+}
+
+// SetStartAgent 设置开始执行的入口 agent
+func (c *LkeClient) SetStartAgent(agentName string) {
+	c.startAgent = agentName
+}
+
+// SetVisitorBizID 设置访问者 id
+func (c *LkeClient) SetVisitorBizID(visitorBizID string) {
+	c.visitorBizID = visitorBizID
+}
+
 // SetHttpClient 设置自定义 http client
 func (c *LkeClient) SetHttpClient(cli *http.Client) {
 	if cli != nil {
 		c.httpClient = cli
+	}
+}
+
+// SetApiLogFile 设置日志答应文件
+func (c *LkeClient) SetApiLogFile(f *os.File) {
+	if f != nil {
+		c.logger = logrus.New()
+		c.logger.SetOutput(f)
+		c.logger.SetFormatter(&logrus.TextFormatter{
+			DisableQuote: true,
+		})
 	}
 }
 
@@ -144,6 +178,22 @@ func (c *LkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, se
 	return addTools, err
 }
 
+// AddAgents 添加一批 agent
+func (c *LkeClient) AddAgents(agents []model.Agent) {
+	c.agents = append(c.agents, agents...)
+}
+
+// AddHandoffs 添加 handoffs
+// 其中 sourceAgentName, targetAgentNames 可以是应用对应的云上 agent，也可以是本地创建的 agent
+func (c *LkeClient) AddHandoffs(sourceAgentName string, targetAgentNames []string) {
+	for _, target := range targetAgentNames {
+		c.handoffs = append(c.handoffs, model.Handoff{
+			SourceAgentName: sourceAgentName,
+			TargetAgentName: target,
+		})
+	}
+}
+
 func (c LkeClient) buildReq(query, sessionID string, options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -154,15 +204,22 @@ func (c LkeClient) buildReq(query, sessionID string, options *model.Options) *mo
 	if options != nil {
 		req.Options = *options
 	}
+	// 构建 agent 参数
+	req.AgentConfig.Agents = c.agents
+	// 构建 handoff 参数
+	req.AgentConfig.Handoffs = c.handoffs
+	req.AgentConfig.DisableSystemOpt = c.disableSystemOpt
+	req.AgentConfig.StartAgentName = c.startAgent
+	// 构建工具参数
 	for agentName, toolFuncMap := range c.toolsMap {
 		if len(toolFuncMap) > 0 {
-			dynamicTool := model.DynamicTool{
+			agentTool := model.AgentTool{
 				AgentName: agentName,
 			}
 			for _, t := range toolFuncMap {
-				dynamicTool.Tools = append(dynamicTool.Tools, tool.ToOpenAIToolPB(t))
+				agentTool.Tools = append(agentTool.Tools, tool.ToOpenAIToolPB(t))
 			}
-			req.DynamicTools = append(req.DynamicTools, dynamicTool)
+			req.AgentConfig.AgentTools = append(req.AgentConfig.AgentTools, agentTool)
 		}
 	}
 	return req
@@ -224,6 +281,9 @@ func (c LkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
+	if c.logger != nil {
+		c.logger.Infof("api call, request: %s", string(bs))
+	}
 	payload := bytes.NewReader(bs)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
 	if err != nil {
@@ -243,6 +303,14 @@ func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
 		finalReply, finalErr = c.handlerEvent([]byte(ev.Data))
+	}
+	if c.logger != nil {
+		if finalErr != nil {
+			c.logger.Errorf("api final error: %v", err)
+		} else {
+			bs, _ := json.Marshal(finalReply)
+			c.logger.Infof("api final reply: %s", string(bs))
+		}
 	}
 	return finalReply, finalErr
 }
@@ -337,9 +405,9 @@ func (c LkeClient) RunWithContext(ctx context.Context, query, sesionID string,
 			outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
 		}
 		c.runTools(ctx, reply, &outputs)
-		req.LocalToolOuputs = nil
+		req.ToolOuputs = nil
 		for i, out := range outputs {
-			req.LocalToolOuputs = append(req.LocalToolOuputs, model.LocalToolOuput{
+			req.ToolOuputs = append(req.ToolOuputs, model.ToolOuput{
 				ToolName: reply.InterruptInfo.ToolCalls[i].Function.Name,
 				Output:   out,
 			})

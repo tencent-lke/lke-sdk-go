@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	visitorBizID = "custom-visior-id" // 访问者 id
 	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
 	botAppKey = "custom-app-key"
 )
@@ -75,7 +76,7 @@ func (MyEventHandler) OnReply(reply *event.ReplyEvent) {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
 	client.SetMock(true)
 	// 方式1, 自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag,
 	// json tag 会转换参数名，doc tag 转换成字段描述
