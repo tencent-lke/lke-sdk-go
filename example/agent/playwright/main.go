@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
@@ -114,7 +115,7 @@ func (e *MyEventHandler) ToolCallHook(tool tool.Tool, input map[string]interface
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
-	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_10")
+	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
 	defer c.Close()
 	// 定义新闻搜索 agent
@@ -142,12 +143,12 @@ func main() {
 		fmt.Printf("toolname: %s\ndescribe: %s\nschema: %v\n\n",
 			tools.GetName(), tools.GetDescription(), string(bs))
 	}
-
+	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
 	client.SetStartAgent(downloadAgent.Name)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
-		client.SetApiLogFile(f) // 设置 api 日志打印
+		client.SetApiLogFile(f) // 设置 api 日志打印文件
 		defer f.Close()
 	}
 	fmt.Printf("sessionID: %s\n", sessionID)
@@ -164,9 +165,8 @@ func main() {
 		}
 		query = strings.TrimSuffix(query, "\n")
 		options := &model.Options{
-			CustomVariables: map[string]string{
-				"xxxx": "www.baidu.com",
-			}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
+			StreamingThrottle: 5,
+			CustomVariables:   map[string]string{}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
 		}
 		_, err = client.Run(query, sessionID, options)
 		if err != nil {
