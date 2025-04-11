@@ -115,7 +115,7 @@ func (e *MyEventHandler) ToolCallHook(tool tool.Tool, input map[string]interface
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
-	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
+	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_10")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
 	defer c.Close()
 	// 定义新闻搜索 agent
@@ -126,13 +126,13 @@ func main() {
 		model.ModelFunctionCallPro,
 	)
 	browserAgent := model.NewAgent(
-		"浏览器agent",
+		"浏览器控制 agent",
 		"涉及到实际操作浏览器",
 		"涉及到实际浏览器控制和操作的需求都可以交给我。",
 		model.ModelFunctionCallPro,
 	)
 	client.AddAgents([]model.Agent{downloadAgent, browserAgent})
-	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
+	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
 
 	addTools, err := client.AddMcpTools(browserAgent.Name, c, nil)
 	if err != nil {
@@ -145,7 +145,8 @@ func main() {
 	}
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
-	client.SetStartAgent(downloadAgent.Name)
+	// client.SetStartAgent(downloadAgent.Name)
+	client.SetEnableSystemOpt(true)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		client.SetApiLogFile(f) // 设置 api 日志打印文件
