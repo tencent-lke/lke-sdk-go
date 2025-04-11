@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	visitorBizID = "custom-visior-id" // 访问者 id
 	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
 	botAppKey = "custom-app-key"
 )
@@ -38,7 +39,7 @@ func buildCustomStdioMcpClient() mcpclient.MCPClient {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, nil)
+	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, nil)
 	// client.SetMock(true) // mock run
 
 	// 增加自定义 mcp 插件

@@ -1,7 +1,5 @@
 package model
 
-import "github.com/openai/openai-go"
-
 type ChatRequest struct {
 	Options
 	Content      string `json:"content"`
@@ -20,8 +18,9 @@ type Options struct {
 	SystemRole        string            `json:"system_role,omitempty"`        // 角色指令（提示词），为空时使用应用配置默认设定
 	Incremental       bool              `json:"incremental,omitempty"`        // 控制回复事件和思考事件中的content是否是增量输出的内容，默认false
 	SearchNetwork     string            `json:"search_network"`
-	LocalToolOuputs   []LocalToolOuput  `json:"local_tool_ouputs"` // 端上调用工具的输出提交到云上
-	DynamicTools      []DynamicTool     `json:"dynamic_tools"`     // 每次对话的动态工具
+	// 用于端上sdk的参数
+	ToolOuputs  []ToolOuput `json:"tool_ouputs"`  // 端上调用工具的输出提交到云上
+	AgentConfig AgentConfig `json:"agent_config"` // agent配置
 }
 
 // VisitorLabel 定义了知识标签的结构
@@ -39,14 +38,8 @@ type FileInfo struct {
 	DocID    string `json:"doc_id"`    // 实时文档解析接口返回的doc_id
 }
 
-// LocalToolOuput 本地工具的输出结果
-type LocalToolOuput struct {
+// ToolOuput 本地工具的输出结果
+type ToolOuput struct {
 	ToolName string `json:"tool_name"`
 	Output   string `json:"output"`
-}
-
-// DynamicTool 动态工具
-type DynamicTool struct {
-	AgentName string                      `json:"agent_name"` // agent 的名字
-	Tools     []*openai.FunctionToolParam `json:"tools"`      // 工具列表
 }

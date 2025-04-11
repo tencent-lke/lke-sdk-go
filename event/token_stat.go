@@ -48,7 +48,8 @@ const (
 type TokenStatEvent struct {
 	SessionID string `json:"session_id"` // 会话 ID
 	RequestID string `json:"request_id"` // 请求 ID
-	RecordID  string `json:"record_id"`  // 对应哪条会话, 会话 ID, 用于回答的消息存储使用, 可提前生成, 保存消息时使用
+	TraceId   string `json:"trace_id"`
+	RecordID  string `json:"record_id"` // 对应哪条会话, 会话 ID, 用于回答的消息存储使用, 可提前生成, 保存消息时使用
 
 	MainModelName string `json:"-"` // 主模型名
 	// BalanceType string `json:"-"`           // 余额状态, 体验: experience; 云计费: cloud
