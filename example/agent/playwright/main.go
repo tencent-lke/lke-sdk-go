@@ -16,6 +16,7 @@ import (
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 const (
@@ -99,6 +100,17 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 	}
 }
 
+// ToolCallHook 工具调用后钩子
+func (e *MyEventHandler) ToolCallHook(tool tool.Tool, input map[string]interface{},
+	output interface{}, err error) {
+	prefix := ""
+	for range 20 {
+		prefix = prefix + " "
+	}
+	bs, _ := json.Marshal(input)
+	fmt.Printf("\n\n%scall tools %s, input: %s\n\n", prefix, tool.GetName(), string(bs))
+}
+
 func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
@@ -151,7 +163,12 @@ func main() {
 			return
 		}
 		query = strings.TrimSuffix(query, "\n")
-		_, err = client.Run(query, sessionID, nil)
+		options := &model.Options{
+			CustomVariables: map[string]string{
+				"xxxx": "www.baidu.com",
+			}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
+		}
+		_, err = client.Run(query, sessionID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

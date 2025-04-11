@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/openai/openai-go"
@@ -39,6 +40,7 @@ type LkeClient struct {
 	disableSystemOpt bool
 	startAgent       string
 	logger           *logrus.Logger
+	toolRunTimeout   time.Duration
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters
@@ -315,6 +317,40 @@ func (c LkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	return finalReply, finalErr
 }
 
+func (c LkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
+	input map[string]interface{}) (output interface{}, err error) {
+	if c.toolRunTimeout.Seconds() == 0 {
+		// 不设置超时时间
+		return f.Execute(ctx, input)
+	}
+	runCtx, cancel := context.WithCancel(ctx)
+	t := time.NewTimer(c.toolRunTimeout)
+	defer cancel()
+	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				err = fmt.Errorf("tool %s run failed, try another tool, error: %v",
+					f.GetName(), string(debug.Stack()))
+			}
+		}()
+		output, err = f.Execute(runCtx, input)
+	}()
+	for {
+		select {
+		case <-t.C:
+			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
+			cancel()
+			return nil, err
+		case <-runCtx.Done():
+			if runCtx.Err() != nil {
+				return output, runCtx.Err()
+			}
+			return output, err
+		}
+	}
+
+}
+
 func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
 		return
@@ -363,8 +399,8 @@ func (c LkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 					(*output)[index] = fmt.Sprintf("The parameters of the thinking process output are wrong, error: %v", err)
 					return
 				}
-				toolout, err := f.Execute(ctx, input)
-				go c.eventHandler.ToolCallHook(f, output, err)
+				toolout, err := c.runWithTimeout(ctx, f, input)
+				go c.eventHandler.ToolCallHook(f, input, output, err)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)

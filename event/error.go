@@ -8,6 +8,7 @@ const EventError = "error"
 type ErrorEvent struct {
 	Error     Error  `json:"error"`
 	RequestID string `json:"request_id"`
+	TraceId   string `json:"trace_id"`
 }
 
 // Name 事件名称

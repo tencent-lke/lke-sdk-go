@@ -7,7 +7,7 @@ type ModelName string
 
 // model 模型配置
 type model struct {
-	Name        ModelName `json:"name"`
+	ModelName   ModelName `json:"model_name"`
 	Temperature float32   `json:"temperature"`
 	TopP        float32   `json:"top_p"`
 }
@@ -15,19 +15,19 @@ type model struct {
 // 模型枚举，目前支持的 function call 模型
 const (
 	FunctionCallPro ModelName = "function-call-pro"
-	DeepSeekR1      ModelName = "DeepSeek-R1"
+	DeepSeekR1      ModelName = "lke-deepseek-r1"
 )
 
 // 默认模型
 var ModelFunctionCallPro = model{
-	Name:        FunctionCallPro,
+	ModelName:   FunctionCallPro,
 	Temperature: 0.5,
 	TopP:        0.5,
 }
 
 // 默认模型
 var ModelDeepSeekR1 = model{
-	Name:        DeepSeekR1,
+	ModelName:   DeepSeekR1,
 	Temperature: 0.5,
 	TopP:        0.5,
 }
@@ -40,7 +40,7 @@ func NewModel(modelName ModelName) (model, error) {
 	switch modelName {
 	case FunctionCallPro, DeepSeekR1:
 		return model{
-			Name:        modelName,
+			ModelName:   modelName,
 			Temperature: 0.5,
 			TopP:        0.5,
 		}, nil
@@ -53,7 +53,7 @@ func NewModelWithParam(modelName ModelName, temperature, topP float32) (model, e
 	switch modelName {
 	case FunctionCallPro, DeepSeekR1:
 		return model{
-			Name:        modelName,
+			ModelName:   modelName,
 			Temperature: temperature,
 			TopP:        topP,
 		}, nil

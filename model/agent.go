@@ -11,10 +11,10 @@ type AgentConfig struct {
 
 // Agent agent 定义
 type Agent struct {
-	Name         string `json:"name"`
-	Instructions string `json:"instructions"`
-	Description  string `json:"description"`
-	Model        model  `json:"model"`
+	Name               string `json:"Name"`
+	Instructions       string `json:"Instructions"`
+	HandoffDescription string `json:"HandoffDescription"`
+	Model              model  `json:"Model"`
 }
 
 // NewAgent 创建一个新的 Agent 实例
@@ -25,9 +25,9 @@ type Agent struct {
 // m 该 agent 需要用到的模型
 func NewAgent(name, instruction, description string, m model) Agent {
 	return Agent{
-		Name:         name,
-		Instructions: instruction,
-		Description:  description,
-		Model:        m,
+		Name:               name,
+		Instructions:       instruction,
+		HandoffDescription: description,
+		Model:              m,
 	}
 }
