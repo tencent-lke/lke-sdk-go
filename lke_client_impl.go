@@ -291,8 +291,9 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 		return nil, fmt.Errorf("httpClient do request error: %v", err)
 	}
 	defer res.Body.Close() // don't forget!!
-
-	for ev, err := range sse.Read(res.Body, nil) {
+	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
+		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
+	}) {
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
