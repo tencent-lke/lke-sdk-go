@@ -291,8 +291,9 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 		return nil, fmt.Errorf("httpClient do request error: %v", err)
 	}
 	defer res.Body.Close() // don't forget!!
-
-	for ev, err := range sse.Read(res.Body, nil) {
+	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
+		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
+	}) {
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
@@ -318,6 +319,7 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	runCtx, cancel := context.WithCancel(ctx)
 	t := time.NewTimer(c.toolRunTimeout)
 	defer cancel()
+	signal := make(chan struct{})
 	go func() {
 		defer func() {
 			if p := recover(); p != nil {
@@ -326,6 +328,7 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 			}
 		}()
 		output, err = f.Execute(runCtx, input)
+		signal <- struct{}{}
 	}()
 	for {
 		select {
@@ -338,9 +341,10 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 				return output, runCtx.Err()
 			}
 			return output, err
+		case <-signal:
+			return output, err
 		}
 	}
-
 }
 
 func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
