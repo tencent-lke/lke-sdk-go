@@ -37,7 +37,7 @@ func buildFileSystemStdioMcpClient() mcpclient.MCPClient {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, nil)
+	client := lkesdk.NewLkeClient(botAppKey, nil)
 	// client.SetMock(true) // mock run
 
 	// 增加 npx mcp 插件
@@ -68,9 +68,8 @@ func main() {
 		query = strings.TrimSuffix(query, "\n")
 		options := &model.Options{
 			StreamingThrottle: 5,
-			RequestID:         "test",
 		}
-		finalReply, err := client.Run(query, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, visitorBizID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

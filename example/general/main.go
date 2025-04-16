@@ -42,7 +42,7 @@ func (MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
 	// client.SetMock(true)
 
 	for {
@@ -60,7 +60,7 @@ func main() {
 		options := &model.Options{
 			StreamingThrottle: 5,
 		}
-		finalReply, err := client.Run(query, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, visitorBizID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

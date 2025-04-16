@@ -23,8 +23,11 @@ type EventHandler interface {
 	// OnTokenStat token 统计事件
 	OnTokenStat(stat *event.TokenStatEvent)
 
-	// ToolCallHook 工具调用后钩子
-	ToolCallHook(tool tool.Tool, input map[string]interface{},
+	// BeforeToolCallHook 工具调用前的钩子
+	BeforeToolCallHook(tool tool.Tool, input map[string]interface{})
+
+	// AfterToolCallHook 工具调用后的钩子
+	AfterToolCallHook(tool tool.Tool, input map[string]interface{},
 		output interface{}, err error)
 }
 
@@ -47,7 +50,11 @@ func (DefaultEventHandler) OnReference(refer *event.ReferenceEvent) {}
 // OnTokenStattoken 统计事件
 func (DefaultEventHandler) OnTokenStat(stat *event.TokenStatEvent) {}
 
-// ToolCallHook 工具调用后钩子
-func (DefaultEventHandler) ToolCallHook(tool tool.Tool, input map[string]interface{},
+// BeforeToolCallHook 工具调用前钩子
+func (DefaultEventHandler) BeforeToolCallHook(tool tool.Tool, input map[string]interface{}) {
+}
+
+// AfterToolCallHook 工具调用后的钩子
+func (DefaultEventHandler) AfterToolCallHook(tool tool.Tool, input map[string]interface{},
 	output interface{}, err error) {
 }

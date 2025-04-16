@@ -27,7 +27,6 @@ const (
 // lkeClient represents a client for interacting with the LKE service
 type lkeClient struct {
 	botAppKey    string // 机器人密钥 (从运营接口人处获取)
-	visitorBizID string // 访客 ID（外部系统提供，需确认不同的访客使用不同的 ID）
 	endpoint     string // 调用地址
 	eventHandler EventHandler
 	mock         bool
@@ -81,11 +80,6 @@ func (c *lkeClient) SetEnableSystemOpt(enable bool) {
 // SetStartAgent 设置开始执行的入口 agent
 func (c *lkeClient) SetStartAgent(agentName string) {
 	c.startAgent = agentName
-}
-
-// SetVisitorBizID 设置访问者 id
-func (c *lkeClient) SetVisitorBizID(visitorBizID string) {
-	c.visitorBizID = visitorBizID
 }
 
 // SetHttpClient 设置自定义 http client
@@ -188,10 +182,11 @@ func (c *lkeClient) AddHandoffs(sourceAgentName string, targetAgentNames []strin
 	}
 }
 
-func (c lkeClient) buildReq(query, sessionID string, options *model.Options) *model.ChatRequest {
+func (c lkeClient) buildReq(query, sessionID, visitorBizID string,
+	options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
-		VisitorBizID: c.visitorBizID,
+		VisitorBizID: visitorBizID,
 		BotAppKey:    c.botAppKey,
 		SessionID:    sessionID,
 	}
@@ -395,8 +390,9 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 					(*output)[index] = fmt.Sprintf("The parameters of the thinking process output are wrong, error: %v", err)
 					return
 				}
+				c.eventHandler.BeforeToolCallHook(f, input)
 				toolout, err := c.runWithTimeout(ctx, f, input)
-				go c.eventHandler.ToolCallHook(f, input, output, err)
+				c.eventHandler.AfterToolCallHook(f, input, output, err)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
@@ -414,13 +410,14 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 }
 
 // RunWithContext 执行 agent with context，query 用户的输入
-// sesionID 对话唯一标识，options 可选参数，可以为空
-func (c lkeClient) RunWithContext(ctx context.Context, query, sesionID string,
+// sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
+func (c lkeClient) RunWithContext(ctx context.Context,
+	query, sesionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
 		return c.mockRun()
 	}
-	req := c.buildReq(query, sesionID, options)
+	req := c.buildReq(query, sesionID, visitorBizID, options)
 	for i := 0; i <= int(c.maxToolTurns); i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {
@@ -449,9 +446,10 @@ func (c lkeClient) RunWithContext(ctx context.Context, query, sesionID string,
 }
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
-func (c lkeClient) Run(query, sesionID string,
+// visitorBizID 用户的唯一标识
+func (c lkeClient) Run(query, sesionID, visitorBizID string,
 	options *model.Options) (*event.ReplyEvent, error) {
-	return c.RunWithContext(context.Background(), query, sesionID, options)
+	return c.RunWithContext(context.Background(), query, sesionID, visitorBizID, options)
 }
 
 func (c lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
