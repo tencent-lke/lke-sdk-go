@@ -76,7 +76,7 @@ func (MyEventHandler) OnReply(reply *event.ReplyEvent) {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
 	client.SetMock(true)
 	// 方式1, 自定义函数，除去 context，入参是一个 struct，并且 struct 中每个字段都有 tag,
 	// json tag 会转换参数名，doc tag 转换成字段描述
@@ -142,7 +142,7 @@ func main() {
 		options := &model.Options{
 			StreamingThrottle: 5,
 		}
-		finalReply, err := client.Run(query, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, visitorBizID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

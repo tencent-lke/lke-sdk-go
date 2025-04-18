@@ -1,5 +1,6 @@
 package model
 
+// ChatRequest chat 的请求
 type ChatRequest struct {
 	Options
 	Content      string `json:"content"`

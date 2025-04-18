@@ -39,7 +39,7 @@ func buildCustomStdioMcpClient() mcpclient.MCPClient {
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, visitorBizID, nil)
+	client := lkesdk.NewLkeClient(botAppKey, nil)
 	// client.SetMock(true) // mock run
 
 	// 增加自定义 mcp 插件
@@ -71,7 +71,7 @@ func main() {
 		options := &model.Options{
 			StreamingThrottle: 5,
 		}
-		finalReply, err := client.Run(query, sessionID, options)
+		finalReply, err := client.Run(query, sessionID, visitorBizID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

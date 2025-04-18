@@ -28,14 +28,14 @@ type LkeClient interface {
 	// 其中 sourceAgentName, targetAgentNames 可以是应用对应的云上 agent，也可以是本地创建的 agent
 	AddHandoffs(sourceAgentName string, targetAgentNames []string)
 
-	// Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
-	// finalReply
-	Run(query, sesionID string,
+	// Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，visitorBizID 用户的唯一标识
+	// options 可选参数，可以为空。finalReply 最终的回复。
+	Run(query, sesionID, visitorBizID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// RunWithContext 执行 agent with context，query 用户的输入
 	// sesionID 对话唯一标识，options 可选参数，可以为空
-	RunWithContext(ctx context.Context, query, sesionID string,
+	RunWithContext(ctx context.Context, query, sesionID, visitorBizID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// GetBotAppKey 获取 BotAppKey
@@ -46,9 +46,6 @@ type LkeClient interface {
 
 	// SetBotAppKey sets the bot application key
 	SetBotAppKey(botAppKey string)
-
-	// SetVisitorBizID 设置访问者 id
-	SetVisitorBizID(visitorBizID string)
 
 	// SetEndpoint sets the endpoint URL
 	SetEndpoint(endpoint string)
@@ -80,16 +77,14 @@ type LkeClient interface {
 
 // NewLkeClient creates a new LKE client with the provided parameters,
 // botAppKey 知识引擎应用 id,
-// visitorBizID 访客的唯一标识,
 // eventHandler 自定义事件处理
-func NewLkeClient(botAppKey, visitorBizID string, eventHandler EventHandler) LkeClient {
+func NewLkeClient(botAppKey string, eventHandler EventHandler) LkeClient {
 	handler := eventHandler
 	if handler == nil {
 		handler = &DefaultEventHandler{}
 	}
 	return &lkeClient{
 		botAppKey:    botAppKey,
-		visitorBizID: visitorBizID,
 		endpoint:     DefaultEndpoint,
 		eventHandler: handler,
 		toolsMap:     map[string]map[string]tool.Tool{},
