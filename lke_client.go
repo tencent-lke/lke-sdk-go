@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -18,8 +19,8 @@ type LkeClient interface {
 	AddFunctionTools(agentName string, tools []*tool.FunctionTool)
 
 	// AddMcpTools 增加 mcptools
-	AddMcpTools(agentName string, mcpClient client.MCPClient, selectedToolNames []string) (
-		addTools []*tool.McpTool, err error)
+	AddMcpTools(agentName string, mcpClient client.MCPClient, impl mcp.Implementation,
+		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
 	// AddAgents 添加一批 agents
 	AddAgents(agents []model.Agent)
@@ -37,6 +38,12 @@ type LkeClient interface {
 	// sesionID 对话唯一标识，options 可选参数，可以为空
 	RunWithContext(ctx context.Context, query, sesionID, visitorBizID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
+
+	// 关闭所有 client 上的任务
+	Close()
+
+	// Open 已经 Close 的 client
+	Open()
 
 	// GetBotAppKey 获取 BotAppKey
 	GetBotAppKey() string

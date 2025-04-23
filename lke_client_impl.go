@@ -9,9 +9,11 @@ import (
 	"os"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/sirupsen/logrus"
 	"github.com/tencent-lke/lke-sdk-go/event"
@@ -40,10 +42,11 @@ type lkeClient struct {
 	logger          *logrus.Logger
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
+	closed          atomic.Bool
 }
 
 // GetBotAppKey 获取 BotAppKey
-func (c lkeClient) GetBotAppKey() string {
+func (c *lkeClient) GetBotAppKey() string {
 	return c.botAppKey
 }
 
@@ -53,7 +56,7 @@ func (c *lkeClient) SetBotAppKey(botAppKey string) {
 }
 
 // GetEndpoint returns the endpoint URL
-func (c lkeClient) GetEndpoint() string {
+func (c *lkeClient) GetEndpoint() string {
 	return c.endpoint
 }
 
@@ -129,9 +132,10 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, selectedToolNames []string) (
+func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
+	impl mcp.Implementation, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
-	tools, err := tool.ListMcpTools(mcpClient)
+	tools, err := tool.ListMcpTools(mcpClient, impl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
@@ -182,7 +186,7 @@ func (c *lkeClient) AddHandoffs(sourceAgentName string, targetAgentNames []strin
 	}
 }
 
-func (c lkeClient) buildReq(query, sessionID, visitorBizID string,
+func (c *lkeClient) buildReq(query, sessionID, visitorBizID string,
 	options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -214,7 +218,7 @@ func (c lkeClient) buildReq(query, sessionID, visitorBizID string,
 	return req
 }
 
-func (c lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
+func (c *lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 		}
@@ -267,7 +271,7 @@ func (c lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 	return nil, nil
 }
 
-func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
+func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
 	if c.logger != nil {
@@ -289,6 +293,10 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
 		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
 	}) {
+		if c.closed.Load() {
+			// client 关闭，不做任何处理
+			return nil, fmt.Errorf("client has been closed")
+		}
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
@@ -305,7 +313,7 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	return finalReply, finalErr
 }
 
-func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
+func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	if c.toolRunTimeout.Seconds() == 0 {
 		// 不设置超时时间
@@ -342,7 +350,7 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	}
 }
 
-func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
+func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
 		return
 	}
@@ -411,7 +419,7 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 
 // RunWithContext 执行 agent with context，query 用户的输入
 // sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
-func (c lkeClient) RunWithContext(ctx context.Context,
+func (c *lkeClient) RunWithContext(ctx context.Context,
 	query, sesionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
@@ -419,6 +427,10 @@ func (c lkeClient) RunWithContext(ctx context.Context,
 	}
 	req := c.buildReq(query, sesionID, visitorBizID, options)
 	for i := 0; i <= int(c.maxToolTurns); i++ {
+		if c.closed.Load() {
+			// client 关闭，不做任何处理
+			return nil, fmt.Errorf("client has been closed")
+		}
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {
 			return nil, err
@@ -447,12 +459,12 @@ func (c lkeClient) RunWithContext(ctx context.Context,
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
 // visitorBizID 用户的唯一标识
-func (c lkeClient) Run(query, sesionID, visitorBizID string,
+func (c *lkeClient) Run(query, sesionID, visitorBizID string,
 	options *model.Options) (*event.ReplyEvent, error) {
 	return c.RunWithContext(context.Background(), query, sesionID, visitorBizID, options)
 }
 
-func (c lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
+func (c *lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
 	reply := &event.ReplyEvent{
 		IsFinal: true,
 		Content: "mock text",
@@ -476,7 +488,7 @@ func (c lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
 	return finalReply, err
 }
 
-func (c lkeClient) mockToolCall(reply *event.ReplyEvent) {
+func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 	// mock tool call
 	for agentName, toolMap := range c.toolsMap {
 		reply.InterruptInfo = &event.InterruptInfo{
@@ -500,4 +512,14 @@ func (c lkeClient) mockToolCall(reply *event.ReplyEvent) {
 		}
 		return
 	}
+}
+
+// Close 关闭所有 client 上的任务
+func (c *lkeClient) Close() {
+	c.closed.Store(true)
+}
+
+// Open Open 已经 Close 的 client
+func (c *lkeClient) Open() {
+	c.closed.Store(false)
 }

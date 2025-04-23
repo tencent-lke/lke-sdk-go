@@ -15,6 +15,7 @@ type McpTool struct {
 	Description string
 	Schame      map[string]interface{}
 	Cli         client.MCPClient
+	ImplInfo    mcp.Implementation
 }
 
 // GetName returns the name of the tool
@@ -62,7 +63,7 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 }
 
 func (m *McpTool) fetch() {
-	rsp, err := ListMcpTools(m.Cli)
+	rsp, err := ListMcpTools(m.Cli, m.ImplInfo)
 	if err != nil {
 		// 如果失败，继续用缓存数据
 		return
@@ -79,15 +80,13 @@ func (m *McpTool) fetch() {
 	}
 }
 
-func ListMcpTools(cli client.MCPClient) (*mcp.ListToolsResult, error) {
+// ListMcpTools 获取 mcp 工具列表
+func ListMcpTools(cli client.MCPClient, implInfo mcp.Implementation) (*mcp.ListToolsResult, error) {
 	ctx := context.Background()
 	// Initialize the client
 	initRequest := mcp.InitializeRequest{}
 	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = mcp.Implementation{
-		Name:    "mcp-client",
-		Version: "1.0.0",
-	}
+	initRequest.Params.ClientInfo = implInfo
 	_, err := cli.Initialize(ctx, initRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %v", err)

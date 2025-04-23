@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/model"
 )
@@ -43,7 +44,10 @@ func main() {
 	// 增加 npx mcp 插件
 	c := buildFileSystemStdioMcpClient()
 	// only add write_file, move_file tool
-	addTools, err := client.AddMcpTools("Agent-A", c, []string{"write_file", "move_file"})
+	addTools, err := client.AddMcpTools("Agent-A", c, mcp.Implementation{
+		Name:    "test",
+		Version: "1,0,0",
+	}, []string{"write_file", "move_file"})
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}

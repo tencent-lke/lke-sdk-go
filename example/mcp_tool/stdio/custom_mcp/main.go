@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/model"
 )
@@ -45,7 +46,10 @@ func main() {
 	// 增加自定义 mcp 插件
 	c := buildCustomStdioMcpClient()
 	defer c.Close()
-	addTools, err := client.AddMcpTools("Agent-A", c, nil) // add all tools in mcp client
+	addTools, err := client.AddMcpTools("Agent-A", c, mcp.Implementation{
+		Name:    "test",
+		Version: "1,0,0",
+	}, nil) // add all tools in mcp client
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}
