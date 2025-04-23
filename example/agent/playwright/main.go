@@ -133,6 +133,7 @@ func main() {
 	)
 	client.AddAgents([]model.Agent{downloadAgent, browserAgent})
 	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
+	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
 
 	addTools, err := client.AddMcpTools(browserAgent.Name, c, nil)
 	if err != nil {
@@ -145,7 +146,7 @@ func main() {
 	}
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
-	// client.SetStartAgent(downloadAgent.Name)
+	client.SetStartAgent(downloadAgent.Name)
 	client.SetEnableSystemOpt(true)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
