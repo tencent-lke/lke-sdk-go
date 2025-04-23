@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
@@ -23,7 +24,8 @@ import (
 const (
 	visitorBizID = "custom-user-id"
 	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
-	botAppKey = "zIIRbxwI"
+	// botAppKey = "zIIRbxwI"
+	botAppKey = "UcFBYLdzeFlZGGOXvSycRXDGHoUVTBGYSGgtkHkdINBZKNmQUZFgxhXQHidAyzoUGUeNYlFkzgYumUngLjawOurmuTwiDpnKoYVdLRXNQogdzuGaLsCuhWPoCLewNAmr"
 )
 
 func buildPlaywrightMcpClient() mcpclient.MCPClient {
@@ -116,6 +118,7 @@ func main() {
 	sessionID := uuid.New().String()
 	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
+	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
 	defer c.Close()
 	// 定义新闻搜索 agent
@@ -135,7 +138,10 @@ func main() {
 	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
 	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
 
-	addTools, err := client.AddMcpTools(browserAgent.Name, c, nil)
+	addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
+		Name:    "test",
+		Version: "1,0,0",
+	}, nil)
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}
