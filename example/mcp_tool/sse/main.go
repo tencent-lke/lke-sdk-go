@@ -69,7 +69,10 @@ func main() {
 	// 增加 sse 插件
 	c := buildSeeMcpClient()
 	defer c.Close()
-	addTools, err := client.AddMcpTools("Agent-A", c, nil)
+	addTools, err := client.AddMcpTools("Agent-A", c, mcp.Implementation{
+		Name:    "test",
+		Version: "1,0,0",
+	}, nil)
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}

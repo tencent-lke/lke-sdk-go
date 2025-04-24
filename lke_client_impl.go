@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
-	"github.com/sirupsen/logrus"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -37,13 +37,14 @@ type lkeClient struct {
 	handoffs        []model.Handoff
 	enableSystemOpt bool
 	startAgent      string
-	logger          *logrus.Logger
+	logger          RunLogger
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
+	closed          atomic.Bool
 }
 
 // GetBotAppKey 获取 BotAppKey
-func (c lkeClient) GetBotAppKey() string {
+func (c *lkeClient) GetBotAppKey() string {
 	return c.botAppKey
 }
 
@@ -53,7 +54,7 @@ func (c *lkeClient) SetBotAppKey(botAppKey string) {
 }
 
 // GetEndpoint returns the endpoint URL
-func (c lkeClient) GetEndpoint() string {
+func (c *lkeClient) GetEndpoint() string {
 	return c.endpoint
 }
 
@@ -99,15 +100,9 @@ func (c *lkeClient) SetToolRunTimeout(toolRunTimeout time.Duration) {
 	c.toolRunTimeout = toolRunTimeout
 }
 
-// SetApiLogFile 设置 api 调用日志打印文件
-func (c *lkeClient) SetApiLogFile(f *os.File) {
-	if f != nil {
-		c.logger = logrus.New()
-		c.logger.SetOutput(f)
-		c.logger.SetFormatter(&logrus.TextFormatter{
-			DisableQuote: true,
-		})
-	}
+// SetRunLogger 设置 sdk 执行日志 logger
+func (c *lkeClient) SetRunLogger(logger RunLogger) {
+	c.logger = logger
 }
 
 // AddFunctionTools 增加函数 tools
@@ -129,8 +124,17 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, selectedToolNames []string) (
+func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
+	impl mcp.Implementation, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
+	// Initialize the client
+	initRequest := mcp.InitializeRequest{}
+	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
+	initRequest.Params.ClientInfo = impl
+	_, err = mcpClient.Initialize(context.Background(), initRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize: %v", err)
+	}
 	tools, err := tool.ListMcpTools(mcpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
@@ -158,7 +162,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient, se
 				Cli:         mcpClient,
 			}
 			bs, _ := json.Marshal(t.InputSchema)
-			json.Unmarshal(bs, &newtool.Schame)
+			_ = json.Unmarshal(bs, &newtool.Schame)
 			toolMcpMap[t.Name] = newtool
 			addTools = append(addTools, newtool)
 		}
@@ -182,7 +186,7 @@ func (c *lkeClient) AddHandoffs(sourceAgentName string, targetAgentNames []strin
 	}
 }
 
-func (c lkeClient) buildReq(query, sessionID, visitorBizID string,
+func (c *lkeClient) buildReq(query, sessionID, visitorBizID string,
 	options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -214,7 +218,7 @@ func (c lkeClient) buildReq(query, sessionID, visitorBizID string,
 	return req
 }
 
-func (c lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
+func (c *lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 		}
@@ -267,11 +271,11 @@ func (c lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err 
 	return nil, nil
 }
 
-func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
+func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
 	if c.logger != nil {
-		c.logger.Infof("api call, request: %s", string(bs))
+		c.logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
 	}
 	payload := bytes.NewReader(bs)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
@@ -289,6 +293,10 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
 		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
 	}) {
+		if c.closed.Load() {
+			// client 关闭，不做任何处理
+			return nil, fmt.Errorf("client has been closed")
+		}
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
@@ -296,16 +304,16 @@ func (c lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	}
 	if c.logger != nil {
 		if finalErr != nil {
-			c.logger.Errorf("api final error: %v", err)
+			c.logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
 		} else {
 			bs, _ := json.Marshal(finalReply)
-			c.logger.Infof("api final reply: %s", string(bs))
+			c.logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
 		}
 	}
 	return finalReply, finalErr
 }
 
-func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
+func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	if c.toolRunTimeout.Seconds() == 0 {
 		// 不设置超时时间
@@ -323,13 +331,17 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 			}
 		}()
 		output, err = f.Execute(runCtx, input)
-		signal <- struct{}{}
+		select {
+		case <-runCtx.Done():
+			return
+		case signal <- struct{}{}:
+		}
 	}()
 	for {
 		select {
 		case <-t.C:
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
 			cancel()
+			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
 			return nil, err
 		case <-runCtx.Done():
 			if runCtx.Err() != nil {
@@ -342,7 +354,7 @@ func (c lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	}
 }
 
-func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
+func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
 		return
 	}
@@ -360,6 +372,9 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 	for i := range reply.InterruptInfo.ToolCalls {
 		wg.Add(1)
 		go func(index int) {
+			defer func() {
+				wg.Done()
+			}()
 			toolCall := reply.InterruptInfo.ToolCalls[index]
 			if toolCall != nil {
 				defer func() {
@@ -367,7 +382,6 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 						(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 							toolCall.Function.Name, string(debug.Stack()))
 					}
-					wg.Done()
 				}()
 				toolFuncMap, ok := c.toolsMap[reply.InterruptInfo.CurrentAgent]
 				if !ok {
@@ -392,12 +406,13 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 				}
 				c.eventHandler.BeforeToolCallHook(f, input)
 				toolout, err := c.runWithTimeout(ctx, f, input)
-				c.eventHandler.AfterToolCallHook(f, input, output, err)
+				c.eventHandler.AfterToolCallHook(f, input, toolout, err)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
 					return
 				}
+
 				str, _ := tool.InterfaceToString(toolout)
 				(*output)[index] = str
 			} else {
@@ -411,7 +426,7 @@ func (c lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output
 
 // RunWithContext 执行 agent with context，query 用户的输入
 // sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
-func (c lkeClient) RunWithContext(ctx context.Context,
+func (c *lkeClient) RunWithContext(ctx context.Context,
 	query, sesionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
@@ -419,6 +434,10 @@ func (c lkeClient) RunWithContext(ctx context.Context,
 	}
 	req := c.buildReq(query, sesionID, visitorBizID, options)
 	for i := 0; i <= int(c.maxToolTurns); i++ {
+		if c.closed.Load() {
+			// client 关闭，不做任何处理
+			return nil, fmt.Errorf("client has been closed")
+		}
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {
 			return nil, err
@@ -447,12 +466,12 @@ func (c lkeClient) RunWithContext(ctx context.Context,
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
 // visitorBizID 用户的唯一标识
-func (c lkeClient) Run(query, sesionID, visitorBizID string,
+func (c *lkeClient) Run(query, sesionID, visitorBizID string,
 	options *model.Options) (*event.ReplyEvent, error) {
 	return c.RunWithContext(context.Background(), query, sesionID, visitorBizID, options)
 }
 
-func (c lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
+func (c *lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
 	reply := &event.ReplyEvent{
 		IsFinal: true,
 		Content: "mock text",
@@ -476,7 +495,7 @@ func (c lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
 	return finalReply, err
 }
 
-func (c lkeClient) mockToolCall(reply *event.ReplyEvent) {
+func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 	// mock tool call
 	for agentName, toolMap := range c.toolsMap {
 		reply.InterruptInfo = &event.InterruptInfo{
@@ -500,4 +519,14 @@ func (c lkeClient) mockToolCall(reply *event.ReplyEvent) {
 		}
 		return
 	}
+}
+
+// Close 关闭所有 client 上的任务
+func (c *lkeClient) Close() {
+	c.closed.Store(true)
+}
+
+// Open Open 已经 Close 的 client
+func (c *lkeClient) Open() {
+	c.closed.Store(false)
 }

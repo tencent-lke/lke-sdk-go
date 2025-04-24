@@ -70,6 +70,12 @@ func (t *FunctionTool) GetParametersSchema() map[string]interface{} {
 	return t.schema
 }
 
+// ResultToString ...
+func (t *FunctionTool) ResultToString(output interface{}) string {
+	str, _ := InterfaceToString(output)
+	return str
+}
+
 // Execute executes the tool with the given parameters
 func (t *FunctionTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	fnType := reflect.TypeOf(t.function)
