@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -15,7 +16,6 @@ type McpTool struct {
 	Description string
 	Schame      map[string]interface{}
 	Cli         client.MCPClient
-	ImplInfo    mcp.Implementation
 }
 
 // GetName returns the name of the tool
@@ -38,7 +38,6 @@ func (m *McpTool) GetParametersSchema() map[string]interface{} {
 
 // Execute executes the tool with the given parameter
 func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	m.fetch()
 	req := mcp.CallToolRequest{}
 	req.Params.Name = m.Name
 	req.Params.Arguments = params
@@ -55,7 +54,6 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 			totalResult = append(totalResult, string(jsonBytes))
 		}
 	}
-
 	if len(totalResult) == 1 {
 		return totalResult, nil
 	}
@@ -63,7 +61,13 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 }
 
 func (m *McpTool) fetch() {
-	rsp, err := ListMcpTools(m.Cli, m.ImplInfo)
+	defer func() {
+		if p := recover(); p != nil {
+			return
+		}
+	}()
+
+	rsp, err := ListMcpTools(m.Cli)
 	if err != nil {
 		// 如果失败，继续用缓存数据
 		return
@@ -81,16 +85,33 @@ func (m *McpTool) fetch() {
 }
 
 // ListMcpTools 获取 mcp 工具列表
-func ListMcpTools(cli client.MCPClient, implInfo mcp.Implementation) (*mcp.ListToolsResult, error) {
+func ListMcpTools(cli client.MCPClient) (res *mcp.ListToolsResult, err error) {
 	ctx := context.Background()
-	// Initialize the client
-	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = implInfo
-	_, err := cli.Initialize(ctx, initRequest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize: %v", err)
+	runCtx, cancel := context.WithCancel(ctx)
+	t := time.NewTimer(60 * time.Second)
+	defer cancel()
+	signal := make(chan struct{})
+	go func() {
+		defer func() {
+			select {
+			case <-runCtx.Done():
+				return
+			case signal <- struct{}{}:
+			}
+		}()
+		if err = cli.Ping(ctx); err != nil {
+			return
+		}
+		toolsRequest := mcp.ListToolsRequest{}
+		res, err = cli.ListTools(runCtx, toolsRequest)
+	}()
+	for {
+		select {
+		case <-t.C:
+			err = fmt.Errorf("ListMcpTools timeout")
+			return nil, err
+		case <-signal:
+			return res, err
+		}
 	}
-	toolsRequest := mcp.ListToolsRequest{}
-	return cli.ListTools(ctx, toolsRequest)
 }

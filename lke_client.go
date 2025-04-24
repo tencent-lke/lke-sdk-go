@@ -3,7 +3,6 @@ package lkesdk
 import (
 	"context"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
@@ -78,8 +77,8 @@ type LkeClient interface {
 	// SetHttpClient 设置本地工具调用的超时时间
 	SetToolRunTimeout(toolRunTimeout time.Duration)
 
-	// SetApiLogFile 设置 api 调用日志打印文件
-	SetApiLogFile(f *os.File)
+	// SetRunLogger 设置 sdk 执行日志 logger
+	SetRunLogger(logger RunLogger)
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters,

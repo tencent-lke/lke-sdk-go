@@ -16,23 +16,31 @@ type model struct {
 const (
 	FunctionCallPro ModelName = "function-call-pro"
 	DeepSeekR1      ModelName = "lke-deepseek-r1"
+	DeepSeekV30324  ModelName = "lke-deepseek-v3-function-call"
 )
 
-// 默认模型
+// ModelFunctionCallPro pro 模型
 var ModelFunctionCallPro = model{
 	ModelName:   FunctionCallPro,
 	Temperature: 0.5,
 	TopP:        0.5,
 }
 
-// 默认模型
+// ModelDeepSeekR1 R1模型
 var ModelDeepSeekR1 = model{
 	ModelName:   DeepSeekR1,
 	Temperature: 0.5,
 	TopP:        0.5,
 }
 
-// 默认模型
+// ModelDeepSeekV3 V3 0324 模型
+var ModelDeepSeekV30324 = model{
+	ModelName:   DeepSeekV30324,
+	Temperature: 0.5,
+	TopP:        0.5,
+}
+
+// DefaultModel 默认模型
 var DefaultModel = ModelFunctionCallPro
 
 // NewModel ...

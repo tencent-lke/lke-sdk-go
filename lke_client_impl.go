@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -15,7 +14,6 @@ import (
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
-	"github.com/sirupsen/logrus"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -39,7 +37,7 @@ type lkeClient struct {
 	handoffs        []model.Handoff
 	enableSystemOpt bool
 	startAgent      string
-	logger          *logrus.Logger
+	logger          RunLogger
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
@@ -102,15 +100,9 @@ func (c *lkeClient) SetToolRunTimeout(toolRunTimeout time.Duration) {
 	c.toolRunTimeout = toolRunTimeout
 }
 
-// SetApiLogFile 设置 api 调用日志打印文件
-func (c *lkeClient) SetApiLogFile(f *os.File) {
-	if f != nil {
-		c.logger = logrus.New()
-		c.logger.SetOutput(f)
-		c.logger.SetFormatter(&logrus.TextFormatter{
-			DisableQuote: true,
-		})
-	}
+// SetRunLogger 设置 sdk 执行日志 logger
+func (c *lkeClient) SetRunLogger(logger RunLogger) {
+	c.logger = logger
 }
 
 // AddFunctionTools 增加函数 tools
@@ -135,7 +127,15 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 	impl mcp.Implementation, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
-	tools, err := tool.ListMcpTools(mcpClient, impl)
+	// Initialize the client
+	initRequest := mcp.InitializeRequest{}
+	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
+	initRequest.Params.ClientInfo = impl
+	_, err = mcpClient.Initialize(context.Background(), initRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize: %v", err)
+	}
+	tools, err := tool.ListMcpTools(mcpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
@@ -162,7 +162,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 				Cli:         mcpClient,
 			}
 			bs, _ := json.Marshal(t.InputSchema)
-			json.Unmarshal(bs, &newtool.Schame)
+			_ = json.Unmarshal(bs, &newtool.Schame)
 			toolMcpMap[t.Name] = newtool
 			addTools = append(addTools, newtool)
 		}
@@ -275,7 +275,7 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
 	if c.logger != nil {
-		c.logger.Infof("api call, request: %s", string(bs))
+		c.logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
 	}
 	payload := bytes.NewReader(bs)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
@@ -304,10 +304,10 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	}
 	if c.logger != nil {
 		if finalErr != nil {
-			c.logger.Errorf("api final error: %v", err)
+			c.logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
 		} else {
 			bs, _ := json.Marshal(finalReply)
-			c.logger.Infof("api final reply: %s", string(bs))
+			c.logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
 		}
 	}
 	return finalReply, finalErr
@@ -331,13 +331,17 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 			}
 		}()
 		output, err = f.Execute(runCtx, input)
-		signal <- struct{}{}
+		select {
+		case <-runCtx.Done():
+			return
+		case signal <- struct{}{}:
+		}
 	}()
 	for {
 		select {
 		case <-t.C:
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
 			cancel()
+			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
 			return nil, err
 		case <-runCtx.Done():
 			if runCtx.Err() != nil {
@@ -368,6 +372,9 @@ func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, outpu
 	for i := range reply.InterruptInfo.ToolCalls {
 		wg.Add(1)
 		go func(index int) {
+			defer func() {
+				wg.Done()
+			}()
 			toolCall := reply.InterruptInfo.ToolCalls[index]
 			if toolCall != nil {
 				defer func() {
@@ -375,7 +382,6 @@ func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, outpu
 						(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 							toolCall.Function.Name, string(debug.Stack()))
 					}
-					wg.Done()
 				}()
 				toolFuncMap, ok := c.toolsMap[reply.InterruptInfo.CurrentAgent]
 				if !ok {
