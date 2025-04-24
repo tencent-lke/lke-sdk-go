@@ -76,7 +76,7 @@ func (m *McpTool) fetch() {
 func ListMcpTools(cli client.MCPClient) (res *mcp.ListToolsResult, err error) {
 	ctx := context.Background()
 	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(60 * time.Second)
+	t := time.NewTimer(5 * time.Second)
 	defer cancel()
 	signal := make(chan struct{})
 	go func() {

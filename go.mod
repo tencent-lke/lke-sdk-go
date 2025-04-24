@@ -6,7 +6,7 @@ toolchain go1.23.8
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/mark3labs/mcp-go v0.21.0
+	github.com/mark3labs/mcp-go v0.20.0
 	github.com/tmaxmax/go-sse v0.10.0
 )
 
