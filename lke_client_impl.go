@@ -406,12 +406,13 @@ func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, outpu
 				}
 				c.eventHandler.BeforeToolCallHook(f, input)
 				toolout, err := c.runWithTimeout(ctx, f, input)
-				c.eventHandler.AfterToolCallHook(f, input, output, err)
+				c.eventHandler.AfterToolCallHook(f, input, toolout, err)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
 					return
 				}
+
 				str, _ := tool.InterfaceToString(toolout)
 				(*output)[index] = str
 			} else {

@@ -27,6 +27,8 @@ type EventHandler interface {
 	BeforeToolCallHook(tool tool.Tool, input map[string]interface{})
 
 	// AfterToolCallHook 工具调用后的钩子
+	// 如果是自定义的函数，output 类型是自定义函数的返回
+	// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
 	AfterToolCallHook(tool tool.Tool, input map[string]interface{},
 		output interface{}, err error)
 }

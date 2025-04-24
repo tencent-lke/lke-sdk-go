@@ -21,6 +21,24 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
+type myLogger struct {
+	F *os.File
+}
+
+// Info ...
+func (m myLogger) Info(msg string) {
+	if m.F != nil {
+		m.F.WriteString("INFO: " + msg + "\n")
+	}
+}
+
+// Error ...
+func (m myLogger) Error(msg string) {
+	if m.F != nil {
+		m.F.WriteString("ERROR: " + msg + "\n")
+	}
+}
+
 const (
 	visitorBizID = "custom-user-id"
 	// 获取方法 https://cloud.tencent.com/document/product/1759/105561#8590003a-0a6d-4a8d-9a02-b706221a679d
@@ -103,15 +121,27 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 	}
 }
 
-// ToolCallHook 工具调用后钩子
-func (e *MyEventHandler) ToolCallHook(tool tool.Tool, input map[string]interface{},
+// AfterToolCallHook 工具调用后的钩子
+// 如果是自定义的函数，output 类型是自定义函数的返回
+// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
+func (e *MyEventHandler) AfterToolCallHook(t tool.Tool, input map[string]interface{},
 	output interface{}, err error) {
+	inputbs, _ := json.Marshal(input)
+	outbs := []byte{}
+	if _, ok := t.(*tool.McpTool); ok {
+		mcpRsp, okout := output.(*mcp.CallToolResult)
+		if okout {
+			outbs, _ = json.Marshal(mcpRsp)
+		}
+	} else {
+		outbs, _ = json.Marshal(output)
+	}
 	prefix := ""
 	for range 20 {
 		prefix = prefix + " "
 	}
-	bs, _ := json.Marshal(input)
-	fmt.Printf("\n\n%scall tools %s, input: %s\n\n", prefix, tool.GetName(), string(bs))
+	fmt.Printf("\n\n%s called tools %s, input: %s, output: %s  \n\n", prefix, t.GetName(),
+		string(inputbs), string(outbs))
 }
 
 func main() {
@@ -139,8 +169,8 @@ func main() {
 	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
 
 	addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
-		Name:    "test",
-		Version: "1,0,0",
+		Name:    "text",
+		Version: "1.0.0",
 	}, nil)
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
@@ -152,11 +182,11 @@ func main() {
 	}
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
-	client.SetStartAgent(downloadAgent.Name)
+	client.SetStartAgent(browserAgent.Name)
 	client.SetEnableSystemOpt(true)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
-		client.SetApiLogFile(f) // 设置 api 日志打印文件
+		client.SetRunLogger(&myLogger{F: f}) // 设置 api 日志打印文件
 		defer f.Close()
 	}
 	fmt.Printf("sessionID: %s\n", sessionID)

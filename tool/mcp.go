@@ -45,19 +45,7 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	if err != nil {
 		return nil, err
 	}
-	totalResult := []string{}
-	for _, content := range result.Content {
-		if textContent, ok := content.(mcp.TextContent); ok {
-			totalResult = append(totalResult, textContent.Text)
-		} else {
-			jsonBytes, _ := json.Marshal(content)
-			totalResult = append(totalResult, string(jsonBytes))
-		}
-	}
-	if len(totalResult) == 1 {
-		return totalResult, nil
-	}
-	return totalResult, nil
+	return result, nil
 }
 
 func (m *McpTool) fetch() {
@@ -114,4 +102,26 @@ func ListMcpTools(cli client.MCPClient) (res *mcp.ListToolsResult, err error) {
 			return res, err
 		}
 	}
+}
+
+// ResultToString ...
+func (m *McpTool) ResultToString(output interface{}) string {
+	result, ok := output.(*mcp.CallToolResult)
+	if !ok {
+		return ""
+	}
+	totalResult := []string{}
+	for _, content := range result.Content {
+		if textContent, ok := content.(mcp.TextContent); ok {
+			totalResult = append(totalResult, textContent.Text)
+		} else {
+			jsonBytes, _ := json.Marshal(content)
+			totalResult = append(totalResult, string(jsonBytes))
+		}
+	}
+	if len(totalResult) == 1 {
+		return totalResult[0]
+	}
+	str, _ := InterfaceToString(totalResult)
+	return str
 }

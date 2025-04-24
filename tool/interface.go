@@ -17,4 +17,7 @@ type Tool interface {
 
 	// Execute executes the tool with the given parameters
 	Execute(ctx context.Context, params map[string]interface{}) (interface{}, error)
+
+	// ResultToString 工具输出结果转换成 string
+	ResultToString(result interface{}) string
 }
