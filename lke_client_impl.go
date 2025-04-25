@@ -354,7 +354,8 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	}
 }
 
-func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, output *[]string) {
+func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
+	reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
 		return
 	}
@@ -404,6 +405,12 @@ func (c *lkeClient) runTools(ctx context.Context, reply *event.ReplyEvent, outpu
 					(*output)[index] = fmt.Sprintf("The parameters of the thinking process output are wrong, error: %v", err)
 					return
 				}
+				// 用户自定义参数放到 tool input 中
+				if req != nil {
+					for k, v := range req.CustomVariables {
+						input[k] = v
+					}
+				}
 				c.eventHandler.BeforeToolCallHook(f, input)
 				toolout, err := c.runWithTimeout(ctx, f, input)
 				c.eventHandler.AfterToolCallHook(f, input, toolout, err)
@@ -452,7 +459,7 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		if reply.InterruptInfo != nil {
 			outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
 		}
-		c.runTools(ctx, reply, &outputs)
+		c.runTools(ctx, req, reply, &outputs)
 		req.ToolOuputs = nil
 		for i, out := range outputs {
 			req.ToolOuputs = append(req.ToolOuputs, model.ToolOuput{
@@ -481,7 +488,7 @@ func (c *lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {
 	if reply.InterruptInfo != nil {
 		outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
 	}
-	c.runTools(context.Background(), reply, &outputs)
+	c.runTools(context.Background(), nil, reply, &outputs)
 	if c.mock {
 		for i, out := range outputs {
 			fmt.Printf("run tool %s, input: %s, output: %s\n", reply.InterruptInfo.ToolCalls[i].Function.Name,
