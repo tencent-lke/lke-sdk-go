@@ -5,6 +5,17 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
+// ToolCallContext 工具调用的上下文
+type ToolCallContext struct {
+	CallTool tool.Tool
+	CallId   string
+	Input    map[string]interface{}
+	// 如果是自定义的函数，output 类型是自定义函数的返回
+	// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
+	Output interface{}
+	Err    error
+}
+
 // EventHandler 事件处理的接口，用户可以用默认的实现，也可以自定义
 type EventHandler interface {
 
@@ -24,13 +35,10 @@ type EventHandler interface {
 	OnTokenStat(stat *event.TokenStatEvent)
 
 	// BeforeToolCallHook 工具调用前的钩子
-	BeforeToolCallHook(tool tool.Tool, input map[string]interface{})
+	BeforeToolCallHook(tollCallCtx ToolCallContext)
 
 	// AfterToolCallHook 工具调用后的钩子
-	// 如果是自定义的函数，output 类型是自定义函数的返回
-	// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
-	AfterToolCallHook(tool tool.Tool, input map[string]interface{},
-		output interface{}, err error)
+	AfterToolCallHook(tollCallCtx ToolCallContext)
 }
 
 // DefaultEventHandler 默认事件处理
@@ -53,10 +61,7 @@ func (DefaultEventHandler) OnReference(refer *event.ReferenceEvent) {}
 func (DefaultEventHandler) OnTokenStat(stat *event.TokenStatEvent) {}
 
 // BeforeToolCallHook 工具调用前钩子
-func (DefaultEventHandler) BeforeToolCallHook(tool tool.Tool, input map[string]interface{}) {
-}
+func (DefaultEventHandler) BeforeToolCallHook(tollCallCtx ToolCallContext) {}
 
 // AfterToolCallHook 工具调用后的钩子
-func (DefaultEventHandler) AfterToolCallHook(tool tool.Tool, input map[string]interface{},
-	output interface{}, err error) {
-}
+func (DefaultEventHandler) AfterToolCallHook(tollCallCtx ToolCallContext) {}

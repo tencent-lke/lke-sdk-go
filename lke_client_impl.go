@@ -411,9 +411,16 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 						input[k] = v
 					}
 				}
-				c.eventHandler.BeforeToolCallHook(f, input)
+				toolCallCtx := ToolCallContext{
+					CallTool: f,
+					CallId:   toolCall.ID,
+					Input:    input,
+				}
+				c.eventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.runWithTimeout(ctx, f, input)
-				c.eventHandler.AfterToolCallHook(f, input, toolout, err)
+				toolCallCtx.Output = toolout
+				toolCallCtx.Err = err
+				c.eventHandler.AfterToolCallHook(toolCallCtx)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
