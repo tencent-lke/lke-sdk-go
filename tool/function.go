@@ -17,6 +17,7 @@ type FunctionTool struct {
 	description string
 	function    interface{}
 	schema      map[string]interface{}
+	timeout     time.Duration
 }
 
 // NewFunctionTool creates a new function tool
@@ -45,6 +46,7 @@ func NewFunctionTool(name, description string, fn interface{}, schema map[string
 			description: description,
 			function:    fn,
 			schema:      schema,
+			timeout:     0,
 		}, nil
 	}
 	return &FunctionTool{
@@ -52,6 +54,7 @@ func NewFunctionTool(name, description string, fn interface{}, schema map[string
 		description: description,
 		function:    fn,
 		schema:      autoSchema,
+		timeout:     0,
 	}, nil
 }
 
@@ -74,6 +77,16 @@ func (t *FunctionTool) GetParametersSchema() map[string]interface{} {
 func (t *FunctionTool) ResultToString(output interface{}) string {
 	str, _ := InterfaceToString(output)
 	return str
+}
+
+// GetTimeout 获取超时时间
+func (m *FunctionTool) GetTimeout() time.Duration {
+	return m.timeout
+}
+
+// SetTimeout 工具输出结果转换成 string
+func (m *FunctionTool) SetTimeout(t time.Duration) {
+	m.timeout = t
 }
 
 // Execute executes the tool with the given parameters

@@ -16,6 +16,7 @@ type McpTool struct {
 	Description string
 	Schame      map[string]interface{}
 	Cli         client.MCPClient
+	Timeout     time.Duration
 }
 
 // GetName returns the name of the tool
@@ -124,4 +125,14 @@ func (m *McpTool) ResultToString(output interface{}) string {
 	}
 	str, _ := InterfaceToString(totalResult)
 	return str
+}
+
+// GetTimeout 获取超时时间
+func (m *McpTool) GetTimeout() time.Duration {
+	return m.Timeout
+}
+
+// SetTimeout 工具输出结果转换成 string
+func (m *McpTool) SetTimeout(t time.Duration) {
+	m.Timeout = t
 }

@@ -315,12 +315,20 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
-	if c.toolRunTimeout.Seconds() == 0 {
-		// 不设置超时时间
+	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
+		// 没有设置超时时间
 		return f.Execute(ctx, input)
 	}
+	var timeout time.Duration
+	if f.GetTimeout() != 0 {
+		// 优先用工具的超时时间
+		timeout = f.GetTimeout()
+	} else {
+		timeout = c.toolRunTimeout
+	}
+
 	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(c.toolRunTimeout)
+	t := time.NewTimer(timeout)
 	defer cancel()
 	signal := make(chan struct{})
 	go func() {

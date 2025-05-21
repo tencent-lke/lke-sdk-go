@@ -2,6 +2,7 @@ package tool
 
 import (
 	"context"
+	"time"
 )
 
 // Tool represents a capability that can be used by an agent
@@ -20,4 +21,10 @@ type Tool interface {
 
 	// ResultToString 工具输出结果转换成 string
 	ResultToString(result interface{}) string
+
+	// GetTimeout 获取超时时间
+	GetTimeout() time.Duration
+
+	// SetTimeout 配置工具超时时间
+	SetTimeout(t time.Duration)
 }
