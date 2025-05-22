@@ -349,7 +349,7 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		select {
 		case <-t.C:
 			cancel()
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
+			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 			return nil, err
 		case <-runCtx.Done():
 			if runCtx.Err() != nil {
