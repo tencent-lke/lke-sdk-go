@@ -113,7 +113,7 @@ func (m *McpTool) ResultToString(output interface{}) string {
 	}
 	totalResult := []string{}
 	for _, content := range result.Content {
-		if textContent, ok := content.(mcp.TextContent); ok {
+		if textContent, ok := content.(*mcp.TextContent); ok {
 			totalResult = append(totalResult, textContent.Text)
 		} else {
 			jsonBytes, _ := json.Marshal(content)

@@ -434,9 +434,7 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 						toolCall.Function.Name, err)
 					return
 				}
-
-				str, _ := tool.InterfaceToString(toolout)
-				(*output)[index] = str
+				(*output)[index] = f.ResultToString(toolout)
 			} else {
 				// functional call 返回错误
 				(*output)[index] = fmt.Sprintf("The %dth tool of the thought process output is empty", index)
