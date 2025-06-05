@@ -41,9 +41,9 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 	if info, ok := cache.Data[name]; ok {
 		bs, _ := json.Marshal(info.InputSchema)
 		_ = json.Unmarshal(bs, &schema)
+		replaceDefaultWithJson(schema)
 		return schema
 	}
-	replaceDefaultWithJson(schema)
 	return schema
 }
 
