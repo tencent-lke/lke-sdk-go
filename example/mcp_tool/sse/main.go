@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -36,11 +37,15 @@ func buildSeeMcpClient() mcpclient.MCPClient {
 		mcp.WithDescription("Test tool"),
 		mcp.WithString("parameter-1", mcp.Description("A string tool parameter")),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args, ok := request.Params.Arguments.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("arguments must be map[string]interface{}")
+		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				mcp.TextContent{
 					Type: "text",
-					Text: "query parameter: " + request.Params.Arguments["parameter-1"].(string),
+					Text: "query parameter: " + args["parameter-1"].(string),
 				},
 			},
 		}, nil

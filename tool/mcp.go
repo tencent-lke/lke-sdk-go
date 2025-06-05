@@ -85,7 +85,7 @@ func (m *McpTool) fetch() {
 			m.Description = tool.Description
 			bs, _ := json.Marshal(tool.InputSchema)
 			tmpSchema := map[string]interface{}{}
-			if err := json.Unmarshal(bs, &tmpSchema); err != nil {
+			if err := json.Unmarshal(bs, &tmpSchema); err == nil {
 				m.Schame = tmpSchema
 				replaceDefaultWithJson(m.Schame)
 			}
