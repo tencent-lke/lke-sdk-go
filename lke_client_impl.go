@@ -135,7 +135,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %v", err)
 	}
-	tools, err := tool.ListMcpTools(mcpClient)
+	cache, err := tool.NewMcpClientCache(mcpClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
@@ -148,7 +148,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 		toolMcpMap = map[string]tool.Tool{}
 		c.toolsMap[agentName] = toolMcpMap
 	}
-	for _, t := range tools.Tools {
+	for _, t := range cache.Data {
 		add := true
 		if len(selectedToolNames) > 0 {
 			if _, ok := selectMap[t.Name]; !ok {
@@ -157,12 +157,9 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 		}
 		if add {
 			newtool := &tool.McpTool{
-				Name:        t.Name,
-				Description: t.Description,
-				Cli:         mcpClient,
+				Name:  t.Name,
+				Cache: cache,
 			}
-			bs, _ := json.Marshal(t.InputSchema)
-			_ = json.Unmarshal(bs, &newtool.Schame)
 			toolMcpMap[t.Name] = newtool
 			addTools = append(addTools, newtool)
 		}
