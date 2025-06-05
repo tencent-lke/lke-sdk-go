@@ -312,12 +312,20 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
-	if c.toolRunTimeout.Seconds() == 0 {
-		// 不设置超时时间
+	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
+		// 没有设置超时时间
 		return f.Execute(ctx, input)
 	}
+	var timeout time.Duration
+	if f.GetTimeout() != 0 {
+		// 优先用工具的超时时间
+		timeout = f.GetTimeout()
+	} else {
+		timeout = c.toolRunTimeout
+	}
+
 	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(c.toolRunTimeout)
+	t := time.NewTimer(timeout)
 	defer cancel()
 	signal := make(chan struct{})
 	go func() {
@@ -338,7 +346,7 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		select {
 		case <-t.C:
 			cancel()
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(c.toolRunTimeout.Seconds()))
+			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 			return nil, err
 		case <-runCtx.Done():
 			if runCtx.Err() != nil {
@@ -408,17 +416,22 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 						input[k] = v
 					}
 				}
-				c.eventHandler.BeforeToolCallHook(f, input)
+				toolCallCtx := ToolCallContext{
+					CallTool: f,
+					CallId:   toolCall.ID,
+					Input:    input,
+				}
+				c.eventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.runWithTimeout(ctx, f, input)
-				c.eventHandler.AfterToolCallHook(f, input, toolout, err)
+				toolCallCtx.Output = toolout
+				toolCallCtx.Err = err
+				c.eventHandler.AfterToolCallHook(toolCallCtx)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
 					return
 				}
-
-				str, _ := tool.InterfaceToString(toolout)
-				(*output)[index] = str
+				(*output)[index] = f.ResultToString(toolout)
 			} else {
 				// functional call 返回错误
 				(*output)[index] = fmt.Sprintf("The %dth tool of the thought process output is empty", index)

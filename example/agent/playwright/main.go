@@ -124,23 +124,23 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 // AfterToolCallHook 工具调用后的钩子
 // 如果是自定义的函数，output 类型是自定义函数的返回
 // 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
-func (e *MyEventHandler) AfterToolCallHook(t tool.Tool, input map[string]interface{},
-	output interface{}, err error) {
-	inputbs, _ := json.Marshal(input)
+func (e *MyEventHandler) AfterToolCallHook(callCtx lkesdk.ToolCallContext) {
+	inputbs, _ := json.Marshal(callCtx.Input)
 	outbs := []byte{}
-	if _, ok := t.(*tool.McpTool); ok {
-		mcpRsp, okout := output.(*mcp.CallToolResult)
+	if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
+		mcpRsp, okout := callCtx.Output.(*mcp.CallToolResult)
 		if okout {
 			outbs, _ = json.Marshal(mcpRsp)
 		}
 	} else {
-		outbs, _ = json.Marshal(output)
+		outbs, _ = json.Marshal(callCtx.Output)
 	}
 	prefix := ""
 	for range 20 {
 		prefix = prefix + " "
 	}
-	fmt.Printf("\n\n%s called tools %s, input: %s, output: %s  \n\n", prefix, t.GetName(),
+	fmt.Printf("\n\n%s called tools %s, id: %s, input: %s, output: %s  \n\n",
+		prefix, callCtx.CallTool.GetName(), callCtx.CallId,
 		string(inputbs), string(outbs))
 }
 

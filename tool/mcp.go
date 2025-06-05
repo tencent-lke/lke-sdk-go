@@ -16,12 +16,23 @@ type mcpClientCache struct {
 	LastFetchTime time.Time
 }
 
-func (cache *mcpClientCache) GetDescription(name string) string {
-	cache.fetch()
-	if info, ok := cache.Data[name]; ok {
-		return info.Description
+func replaceDefaultWithJson(m map[string]interface{}) error {
+	for key, value := range m {
+		if key == "default" {
+			jsonValue, err := json.Marshal(value)
+			if err != nil {
+				return err
+			}
+			m[key] = string(jsonValue)
+		} else if nestedMap, ok := value.(map[string]interface{}); ok {
+			// 如果值是一个嵌套的 map，则递归处理
+			err := replaceDefaultWithJson(nestedMap)
+			if err != nil {
+				return err
+			}
+		}
 	}
-	return ""
+	return nil
 }
 
 func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interface{} {
@@ -32,6 +43,7 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 		_ = json.Unmarshal(bs, &schema)
 		return schema
 	}
+	replaceDefaultWithJson(schema)
 	return schema
 }
 
@@ -76,13 +88,22 @@ func (cache *mcpClientCache) fetch() {
 
 // McpTool ...
 type McpTool struct {
-	Name  string
-	Cache *mcpClientCache
+	Name    string
+	Cache   *mcpClientCache
+	Timeout time.Duration
 }
 
 // GetName returns the name of the tool
 func (m *McpTool) GetName() string {
 	return m.Name
+}
+
+func (cache *mcpClientCache) GetDescription(name string) string {
+	cache.fetch()
+	if info, ok := cache.Data[name]; ok {
+		return info.Description
+	}
+	return ""
 }
 
 // GetDescription returns the description of the tool
@@ -156,6 +177,7 @@ func (m *McpTool) ResultToString(output interface{}) string {
 	}
 	totalResult := []string{}
 	for _, content := range result.Content {
+
 		if textContent, ok := content.(mcp.TextContent); ok {
 			totalResult = append(totalResult, textContent.Text)
 		} else {
@@ -168,4 +190,14 @@ func (m *McpTool) ResultToString(output interface{}) string {
 	}
 	str, _ := InterfaceToString(totalResult)
 	return str
+}
+
+// GetTimeout 获取超时时间
+func (m *McpTool) GetTimeout() time.Duration {
+	return m.Timeout
+}
+
+// SetTimeout 工具输出结果转换成 string
+func (m *McpTool) SetTimeout(t time.Duration) {
+	m.Timeout = t
 }
