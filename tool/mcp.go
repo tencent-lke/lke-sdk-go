@@ -31,6 +31,25 @@ func (m *McpTool) GetDescription() string {
 	return m.Description
 }
 
+func replaceDefaultWithJson(m map[string]interface{}) error {
+	for key, value := range m {
+		if key == "default" {
+			jsonValue, err := json.Marshal(value)
+			if err != nil {
+				return err
+			}
+			m[key] = string(jsonValue)
+		} else if nestedMap, ok := value.(map[string]interface{}); ok {
+			// 如果值是一个嵌套的 map，则递归处理
+			err := replaceDefaultWithJson(nestedMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // GetParametersSchema returns the JSON schema for the tool parameters
 func (m *McpTool) GetParametersSchema() map[string]interface{} {
 	m.fetch()
@@ -68,6 +87,7 @@ func (m *McpTool) fetch() {
 			tmpSchema := map[string]interface{}{}
 			if err := json.Unmarshal(bs, &tmpSchema); err != nil {
 				m.Schame = tmpSchema
+				replaceDefaultWithJson(m.Schame)
 			}
 		}
 	}
