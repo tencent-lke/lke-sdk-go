@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
@@ -194,6 +195,8 @@ func (c *lkeClient) buildReq(query, sessionID, visitorBizID string,
 	if options != nil {
 		req.Options = *options
 	}
+	// 一次端云交互的过程使用一个 requestId
+	req.Options.RequestID = uuid.New().String()
 	// 构建 agent 参数
 	req.AgentConfig.Agents = c.agents
 	// 构建 handoff 参数
