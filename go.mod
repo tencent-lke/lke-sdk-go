@@ -5,9 +5,9 @@ go 1.23
 toolchain go1.23.8
 
 require (
-	git.woa.com/trpc-go/mcp-go/client v0.0.7
-	git.woa.com/trpc-go/mcp-go/mcp v0.0.7
-	git.woa.com/trpc-go/mcp-go/server v0.0.7
+	git.woa.com/trpc-go/mcp-go/client v0.0.8-0.20250609091509-6ed5e936d3c8
+	git.woa.com/trpc-go/mcp-go/mcp v0.0.8-0.20250609091509-6ed5e936d3c8
+	git.woa.com/trpc-go/mcp-go/server v0.0.8-0.20250609091509-6ed5e936d3c8
 	github.com/google/uuid v1.6.0
 	github.com/tmaxmax/go-sse v0.10.0
 )
@@ -41,7 +41,6 @@ require (
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mark3labs/mcp-go v0.31.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/panjf2000/ants/v2 v2.10.0 // indirect

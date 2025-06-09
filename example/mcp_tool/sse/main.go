@@ -4,17 +4,16 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"git.woa.com/trpc-go/mcp-go/client"
 	mcpclient "git.woa.com/trpc-go/mcp-go/client"
 	"git.woa.com/trpc-go/mcp-go/mcp"
 	"git.woa.com/trpc-go/mcp-go/server"
 	"github.com/google/uuid"
-	openmcp "github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/model"
 )
@@ -25,7 +24,7 @@ const (
 	botAppKey = "custom-app-key"
 )
 
-func buildSeeMcpClient() openmcp.MCPClient {
+func buildSeeMcpClient() client.MCPClient {
 	// 启动一个 test sse server
 	mcpServer := server.NewMCPServer(
 		"test-server",
@@ -38,15 +37,11 @@ func buildSeeMcpClient() openmcp.MCPClient {
 		mcp.WithDescription("Test tool"),
 		mcp.WithString("parameter-1", mcp.Description("A string tool parameter")),
 	), func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		args, ok := request.Params.Arguments.(map[string]interface{})
-		if !ok {
-			return nil, errors.New("arguments must be map[string]interface{}")
-		}
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				mcp.TextContent{
 					Type: "text",
-					Text: "query parameter: " + args["parameter-1"].(string),
+					Text: "query parameter: " + request.Params.Arguments["parameter-1"].(string),
 				},
 			},
 		}, nil

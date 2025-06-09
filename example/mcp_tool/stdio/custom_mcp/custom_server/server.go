@@ -35,11 +35,7 @@ func main() {
 }
 
 func helloHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args, ok := request.Params.Arguments.(map[string]interface{})
-	if !ok {
-		return nil, errors.New("arguments must be map[string]interface{}")
-	}
-	name, ok := args["name"].(string)
+	name, ok := request.Params.Arguments["name"].(string)
 	if !ok {
 		return nil, errors.New("name must be a string")
 	}
