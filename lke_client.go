@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
+	"git.woa.com/trpc-go/mcp-go/client"
+	"git.woa.com/trpc-go/mcp-go/mcp"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"

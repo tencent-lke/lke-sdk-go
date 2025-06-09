@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
+	"git.woa.com/trpc-go/mcp-go/client"
+	"git.woa.com/trpc-go/mcp-go/mcp"
 )
 
 type mcpClientCache struct {

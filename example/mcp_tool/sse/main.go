@@ -10,10 +10,11 @@ import (
 	"os"
 	"strings"
 
+	mcpclient "git.woa.com/trpc-go/mcp-go/client"
+	"git.woa.com/trpc-go/mcp-go/mcp"
+	"git.woa.com/trpc-go/mcp-go/server"
 	"github.com/google/uuid"
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	openmcp "github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/model"
 )
@@ -24,7 +25,7 @@ const (
 	botAppKey = "custom-app-key"
 )
 
-func buildSeeMcpClient() mcpclient.MCPClient {
+func buildSeeMcpClient() openmcp.MCPClient {
 	// 启动一个 test sse server
 	mcpServer := server.NewMCPServer(
 		"test-server",

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"git.woa.com/trpc-go/mcp-go/mcp"
+	"git.woa.com/trpc-go/mcp-go/server"
 )
 
 func main() {

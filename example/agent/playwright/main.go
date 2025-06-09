@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
+	mcpclient "git.woa.com/trpc-go/mcp-go/client"
+	"git.woa.com/trpc-go/mcp-go/mcp"
 	"github.com/google/uuid"
-	mcpclient "github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
