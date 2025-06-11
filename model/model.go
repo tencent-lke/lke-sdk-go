@@ -46,7 +46,7 @@ var DefaultModel = ModelFunctionCallPro
 // NewModel ...
 func NewModel(modelName ModelName) (model, error) {
 	switch modelName {
-	case FunctionCallPro, DeepSeekR1:
+	case FunctionCallPro, DeepSeekR1, DeepSeekV30324:
 		return model{
 			ModelName:   modelName,
 			Temperature: 0.5,
@@ -59,7 +59,7 @@ func NewModel(modelName ModelName) (model, error) {
 // NewModel ...
 func NewModelWithParam(modelName ModelName, temperature, topP float32) (model, error) {
 	switch modelName {
-	case FunctionCallPro, DeepSeekR1:
+	case FunctionCallPro, DeepSeekR1, DeepSeekV30324:
 		return model{
 			ModelName:   modelName,
 			Temperature: temperature,
