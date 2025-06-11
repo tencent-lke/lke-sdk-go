@@ -122,41 +122,74 @@ type KnowledgeSummary struct {
 type ValueType int32
 
 type ValueInfo struct {
-	ID            string    `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	Name          string    `protobuf:"bytes,2,opt,name=Name,proto3" json:"Name,omitempty"`
-	ValueType     ValueType `protobuf:"varint,3,opt,name=ValueType,proto3,enum=trpc.KEP.bot_dm_server.ValueType" json:"ValueType,omitempty"`
-	ValueStr      string    `protobuf:"bytes,4,opt,name=ValueStr,proto3" json:"ValueStr,omitempty"`
-	ValueInt      int64     `protobuf:"varint,5,opt,name=ValueInt,proto3" json:"ValueInt,omitempty"`
-	ValueFloat    float32   `protobuf:"fixed32,6,opt,name=ValueFloat,proto3" json:"ValueFloat,omitempty"`
-	ValueBool     bool      `protobuf:"varint,7,opt,name=ValueBool,proto3" json:"ValueBool,omitempty"`
-	ValueStrArray []string  `protobuf:"bytes,8,rep,name=ValueStrArray,proto3" json:"ValueStrArray,omitempty"`
+	ID            string    `json:"id,omitempty"`            // ID
+	Name          string    `json:"name,omitempty"`          // Name
+	ValueType     ValueType `json:"value_type,omitempty"`     // ValueType
+	ValueStr      string    `json:"value_str,omitempty"`      // ValueStr
+	ValueInt      int64     `json:"value_int,omitempty"`      // ValueInt
+	ValueFloat    float32   `json:"value_float,omitempty"`    // ValueFloat
+	ValueBool     bool      `json:"value_bool,omitempty"`     // ValueBool
+	ValueStrArray []string  `json:"value_str_array,omitempty"` // ValueStrArray
 }
 
 // 节点类型
 type FlowNodeType int32
 
 type StrValue struct {
-	Name  string `protobuf:"bytes,1,opt,name=Name,proto3" json:"Name,omitempty"`
-	Value string `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty"`
+	Name  string `json:"name,omitempty"`  // Name
+	Value string `json:"value,omitempty"` // Value
 }
 
 type InvokeAPI struct {
-	Method          string       `protobuf:"bytes,1,opt,name=Method,proto3" json:"Method,omitempty"`                   // 请求方法，如GET/POST等
-	URL             string       `protobuf:"bytes,2,opt,name=URL,proto3" json:"URL,omitempty"`                         // 请求地址。
-	HeaderValues    []*StrValue  `protobuf:"bytes,3,rep,name=HeaderValues,proto3" json:"HeaderValues,omitempty"`       // header参数
-	QueryValues     []*StrValue  `protobuf:"bytes,4,rep,name=QueryValues,proto3" json:"QueryValues,omitempty"`         // 入参Query
-	RequestPostBody string       `protobuf:"bytes,5,opt,name=RequestPostBody,proto3" json:"RequestPostBody,omitempty"` // Post请求的原始数据
-	ResponseBody    string       `protobuf:"bytes,6,opt,name=ResponseBody,proto3" json:"ResponseBody,omitempty"`       // 返回的原始数据
-	ResponseValues  []*ValueInfo `protobuf:"bytes,7,rep,name=ResponseValues,proto3" json:"ResponseValues,omitempty"`   // 出参
-	FailMessage     string       `protobuf:"bytes,8,opt,name=FailMessage,proto3" json:"FailMessage,omitempty"`         // 异常信息
+	Method          string       `json:"method,omitempty"`          // 请求方法，如GET/POST等
+	URL             string       `json:"url,omitempty"`             // 请求地址。
+	HeaderValues    []*StrValue  `json:"header_values,omitempty"`    // header参数
+	QueryValues     []*StrValue  `json:"query_values,omitempty"`     // 入参Query
+	RequestPostBody string       `json:"request_post_body,omitempty"` // Post请求的原始数据
+	ResponseBody    string       `json:"response_body,omitempty"`    // 返回的原始数据
+	ResponseValues  []*ValueInfo `json:"response_values,omitempty"`  // 出参
+	FailMessage     string       `json:"fail_message,omitempty"`     // 异常信息
+}
+
+type RunNodeStatus int32
+
+const (
+	RunNodeStatusInit     RunNodeStatus = 0 // 初始状态
+	RunNodeStatusRunning  RunNodeStatus = 1 // 运行中
+	RunNodeStatusSuccess  RunNodeStatus = 2 // 运行成功
+	RunNodeStatusFailed   RunNodeStatus = 3 // 运行失败
+	RunNodeStatusCanceled RunNodeStatus = 4 // 已取消
+)
+
+type RunNodeStatisticInfo struct {
+	ModelName      string `json:"model_name"`            // 模型名称
+	FirstTokenCost uint32 `json:"first_token_cost"`      // 首token耗时
+	TotalCost      uint32 `json:"total_cost"`            // 推理总耗时
+	InputTokens    uint32 `json:"input_tokens"`          // 输入token数量
+	OutputTokens   uint32 `json:"output_tokens"`         // 输出token数量
+	TotalTokens    uint32 `json:"total_tokens"`          // 输入+输出总token
+	IsSubWorkflow  bool   `json:"is_sub_workflow,omitempty"`   // 是否为子工作流的统计信息
 }
 
 type RunNodeInfo struct {
-	NodeType   FlowNodeType `protobuf:"varint,1,opt,name=NodeType,proto3,enum=trpc.KEP.bot_dm_server.FlowNodeType" json:"NodeType,omitempty"` // 节点类型
-	NodeID     string       `protobuf:"bytes,2,opt,name=NodeID,proto3" json:"NodeID,omitempty"`                                               // 节点ID
-	NodeName   string       `protobuf:"bytes,3,opt,name=NodeName,proto3" json:"NodeName,omitempty"`                                           // 节点名称
-	InvokeAPI  *InvokeAPI   `protobuf:"bytes,4,opt,name=InvokeAPI,proto3" json:"InvokeAPI,omitempty"`                                         // 请求的API
-	SlotValues []*ValueInfo `protobuf:"bytes,5,rep,name=SlotValues,proto3" json:"SlotValues,omitempty"`                                       // 当前节点的所有槽位的值，key：SlotID。没有值的时候也要返回空。
+	NodeType         FlowNodeType           `json:"node_type,omitempty"`         // 节点类型
+	NodeID           string                 `json:"node_id,omitempty"`           // 节点ID
+	NodeName         string                 `json:"node_name,omitempty"`         // 节点名称
+	InvokeAPI        *InvokeAPI             `json:"invoke_api,omitempty"`        // 请求的API
+	SlotValues       []*ValueInfo           `json:"slot_values,omitempty"`       // 当前节点的所有槽位的值，key：SlotID。没有值的时候也要返回空。
+	Status           RunNodeStatus          `json:"status,omitempty"`            // 节点状态
+	Input            string                 `json:"input,omitempty"`             // 节点的输入。json字符串（含普通字符串）
+	Output           string                 `json:"output,omitempty"`            // 节点的输出
+	TaskOutput       string                 `json:"task_output,omitempty"`       // 任务的输出。（原始输出）
+	FailMessage      string                 `json:"fail_message,omitempty"`      // 异常信息
+	CostMilliSeconds uint32                 `json:"cost_milli_seconds,omitempty"` // 节点的总耗时。如果节点有多次调用，耗时为多次调用的总和。
+	FailCode         string                 `json:"fail_code,omitempty"`         // 异常信息对应的错误码，为云API格式的二级错误码，如： "NodeErr.MissingParam"
+	Log              string                 `json:"log,omitempty"`               // 节点的日志
+	LogRef           string                 `json:"log_ref,omitempty"`           // 节点的日志的完整内容的链接（当Log内容超过限制的时候此字段才有值）
+	InputRef         string                 `json:"input_ref,omitempty"`         // 节点的输入的完整内容的链接。（当Input内容超过限制的时候此字段才有值）
+	OutputRef        string                 `json:"output_ref,omitempty"`        // 节点的输出的完整内容的链接。（当Output内容超过限制的时候此字段才有值）
+	TaskOutputRef    string                 `json:"task_output_ref,omitempty"`    // 任务的原始输出的完整内容的链接。（当TaskOutput内容超过限制的时候此字段才有值）
+	StatisticInfos   []*RunNodeStatisticInfo `json:"statistic_infos,omitempty"`   // LLM统计信息。
 }
 
 // TaskFlowSummary 任务流程信息
