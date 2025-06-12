@@ -150,7 +150,11 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 		toolMcps = []tool.Tool{}
 		c.toolsMap[agentName] = toolMcps
 	}
-	for _, t := range cache.Data {
+	for _, toolName := range cache.OrderedName {
+		t, ok := cache.Data[toolName]
+		if !ok {
+			continue
+		}
 		add := true
 		if len(selectedToolNames) > 0 {
 			if _, ok := selectMap[t.Name]; !ok {
