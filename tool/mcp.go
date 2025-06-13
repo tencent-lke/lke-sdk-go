@@ -65,7 +65,7 @@ func NewMcpClientCache(cli client.MCPClient) (*mcpClientCache, error) {
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
-		cache.OrderedName = append(cache.OrderedName, tool.GetName())
+		cache.OrderedName = append(cache.OrderedName, tool.Name)
 	}
 	return cache, nil
 }
