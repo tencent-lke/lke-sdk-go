@@ -33,7 +33,7 @@ type lkeClient struct {
 	mock         bool
 	httpClient   *http.Client
 
-	toolsMap        map[string]map[string]tool.Tool // agentName -> map[toolname -> FunctionTool] 的映射
+	toolsMap        map[string][]tool.Tool // agentName -> tool lists  的映射
 	agents          []model.Agent
 	handoffs        []model.Handoff
 	enableSystemOpt bool
@@ -112,14 +112,15 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 		return
 	}
 
-	toolFuncMap, ok := c.toolsMap[agentName]
+	toolFuncs, ok := c.toolsMap[agentName]
 	if !ok {
-		toolFuncMap = map[string]tool.Tool{}
-		c.toolsMap[agentName] = toolFuncMap
+		toolFuncs = []tool.Tool{}
+		c.toolsMap[agentName] = toolFuncs
 	}
 	for _, tool := range tools {
 		if tool != nil {
-			toolFuncMap[tool.GetName()] = tool
+			toolFuncs = append(toolFuncs, tool)
+			c.toolsMap[agentName] = toolFuncs
 		}
 	}
 }
@@ -144,12 +145,16 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 	for _, t := range selectedToolNames {
 		selectMap[t] = struct{}{}
 	}
-	toolMcpMap, ok := c.toolsMap[agentName]
+	toolMcps, ok := c.toolsMap[agentName]
 	if !ok {
-		toolMcpMap = map[string]tool.Tool{}
-		c.toolsMap[agentName] = toolMcpMap
+		toolMcps = []tool.Tool{}
+		c.toolsMap[agentName] = toolMcps
 	}
-	for _, t := range cache.Data {
+	for _, toolName := range cache.OrderedName {
+		t, ok := cache.Data[toolName]
+		if !ok {
+			continue
+		}
 		add := true
 		if len(selectedToolNames) > 0 {
 			if _, ok := selectMap[t.Name]; !ok {
@@ -161,7 +166,8 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
 				Name:  t.Name,
 				Cache: cache,
 			}
-			toolMcpMap[t.Name] = newtool
+			toolMcps = append(toolMcps, newtool)
+			c.toolsMap[agentName] = toolMcps
 			addTools = append(addTools, newtool)
 		}
 	}
@@ -392,15 +398,23 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 							toolCall.Function.Name, string(debug.Stack()))
 					}
 				}()
-				toolFuncMap, ok := c.toolsMap[reply.InterruptInfo.CurrentAgent]
+				toolFuncs, ok := c.toolsMap[reply.InterruptInfo.CurrentAgent]
 				if !ok {
 					// agent map 未找到
 					(*output)[index] = fmt.Sprintf("The current agent %s toolset does not exist, try another tool",
 						reply.InterruptInfo.CurrentAgent)
 					return
 				}
-				f, ok := toolFuncMap[toolCall.Function.Name]
-				if !ok {
+				var f tool.Tool = nil
+				hasTool := false
+				for _, too := range toolFuncs {
+					if too.GetName() == toolCall.Function.Name {
+						f = too
+						hasTool = true
+						break
+					}
+				}
+				if !hasTool {
 					// tool name 未找到
 					(*output)[index] = fmt.Sprintf("Tool %s not found in currant agent %s's toolset, try another tool",
 						toolCall.Function.Name, reply.InterruptInfo.CurrentAgent)
@@ -521,7 +535,7 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 		reply.InterruptInfo = &event.InterruptInfo{
 			CurrentAgent: agentName,
 		}
-		for toolName, f := range toolMap {
+		for _, f := range toolMap {
 			reply.ReplyMethod = event.ReplyMethodInterrupt
 			jsonData := tool.GenerateRandomSchema(f.GetParametersSchema())
 			str, _ := tool.InterfaceToString(jsonData)
@@ -531,7 +545,7 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 					Type:  "function",
 					ID:    "mock-id",
 					Function: openai.FunctionToolCallDeltaFunction{
-						Name:      toolName,
+						Name:      f.GetName(),
 						Arguments: str,
 					},
 				},

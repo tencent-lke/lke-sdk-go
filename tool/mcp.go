@@ -13,6 +13,7 @@ import (
 type mcpClientCache struct {
 	Cli           client.MCPClient
 	Data          map[string]mcp.Tool
+	OrderedName   []string
 	LastFetchTime time.Time
 }
 
@@ -60,9 +61,11 @@ func NewMcpClientCache(cli client.MCPClient) (*mcpClientCache, error) {
 		Cli:           cli,
 		LastFetchTime: time.Now(),
 		Data:          map[string]mcp.Tool{},
+		OrderedName:   []string{},
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
+		cache.OrderedName = append(cache.OrderedName, tool.GetName())
 	}
 	return cache, nil
 }

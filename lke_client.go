@@ -93,7 +93,7 @@ func NewLkeClient(botAppKey string, eventHandler EventHandler) LkeClient {
 		botAppKey:    botAppKey,
 		endpoint:     DefaultEndpoint,
 		eventHandler: handler,
-		toolsMap:     map[string]map[string]tool.Tool{},
+		toolsMap:     map[string][]tool.Tool{},
 		mock:         false,
 		httpClient:   http.DefaultClient,
 		maxToolTurns: 10,
