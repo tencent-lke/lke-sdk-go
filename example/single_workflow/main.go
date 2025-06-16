@@ -89,7 +89,7 @@ func main() {
 	query := "请帮我分析一下这个Excel文件，并告诉我每个产品的销售情况"
 	options := &model.Options{
 		CustomVariables: map[string]string{
-			"ExcelFile": "https://qbagent-1258344701.cos.ap-guangzhou.myqcloud.com/workflow/sales.xlsx",
+			"ExcelFile": "custom-excel-file-url",
 		},
 	}
 	finalReply, err := client.Run(query, sessionID, visitorBizID, options)
