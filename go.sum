@@ -12,6 +12,8 @@ git.woa.com/trpc-go/go_reuseport v1.7.0 h1:h9Z8/fFvOSk+ezrLRyJ8Ck4tka74ZRCxgKI+4
 git.woa.com/trpc-go/go_reuseport v1.7.0/go.mod h1:5mVq/Xi5sRvmB/Myvjp3dn6zN7F/bIJwPSGBffUdqTc=
 git.woa.com/trpc-go/mcp-go/client v0.0.8-0.20250609091509-6ed5e936d3c8 h1:4PAnbzWFji9A/SgheNXZEeN48L959uGVS6yoHX+BbI8=
 git.woa.com/trpc-go/mcp-go/client v0.0.8-0.20250609091509-6ed5e936d3c8/go.mod h1:qpRq2orS5KpNoN5RYlwcwwCJbomGlWao1/9i4SpHclw=
+git.woa.com/trpc-go/mcp-go/client v0.0.12 h1:MS29WrpFwjKAm3D0mzXjXeW6vvtSGf4Nr+R0s6ZpXKw=
+git.woa.com/trpc-go/mcp-go/client v0.0.12/go.mod h1:qpRq2orS5KpNoN5RYlwcwwCJbomGlWao1/9i4SpHclw=
 git.woa.com/trpc-go/mcp-go/mcp v0.0.8-0.20250609091509-6ed5e936d3c8 h1:kLAZfhr3iMJwbI1/L1f2CxCjJBjxpdtZJuA98PF+X4g=
 git.woa.com/trpc-go/mcp-go/mcp v0.0.8-0.20250609091509-6ed5e936d3c8/go.mod h1:/QRn0wJMLm5UasVMHxbKWZHOAu1I19g8fK0tYC/+UyQ=
 git.woa.com/trpc-go/mcp-go/server v0.0.8-0.20250609091509-6ed5e936d3c8 h1:O+RDI08PjsNsSTpeSvw9YalCtAWI8khvN2YlK7TaKEo=

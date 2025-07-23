@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.8
 
 require (
-	git.woa.com/trpc-go/mcp-go/client v0.0.8-0.20250609091509-6ed5e936d3c8
+	git.woa.com/trpc-go/mcp-go/client v0.0.12
 	git.woa.com/trpc-go/mcp-go/mcp v0.0.8-0.20250609091509-6ed5e936d3c8
 	git.woa.com/trpc-go/mcp-go/server v0.0.8-0.20250609091509-6ed5e936d3c8
 	github.com/google/uuid v1.6.0
