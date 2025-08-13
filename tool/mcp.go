@@ -133,7 +133,6 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	req := mcp.CallToolRequest{}
 	req.Params.Name = m.Name
 	req.Params.Arguments = params
-
 	errp := m.Cache.Cli.Ping(ctx)
 	if errp != nil {
 		cli := m.Cache.Cli.(*client.Client)
