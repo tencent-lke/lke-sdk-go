@@ -344,17 +344,17 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
 		if err != nil {
-			c.logger.Error(fmt.Sprintf("Execute: %s", err.Error()))
+			c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
 		}
 		end := time.Now()
-		c.logger.Info(fmt.Sprintf("Execute: %s, cost: %v", f.GetName(), end.Sub(begin)))
+		c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
 	}()
 	t := time.NewTimer(timeout)
 	defer t.Stop() // 确保定时器释放
 
 	select {
 	case <-t.C:
-		cancel()
+		c.logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
 		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 	case <-runCtx.Done():
 		if err != nil {
@@ -362,6 +362,7 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		}
 		return output, runCtx.Err()
 	case <-signal:
+		c.logger.Error(fmt.Sprintf("run tool %s signal", f.GetName()))
 		return output, err
 	}
 }
