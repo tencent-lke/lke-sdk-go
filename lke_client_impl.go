@@ -322,49 +322,47 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
-		// 没有设置超时时间
 		return f.Execute(ctx, input)
 	}
 	var timeout time.Duration
 	if f.GetTimeout() != 0 {
-		// 优先用工具的超时时间
 		timeout = f.GetTimeout()
 	} else {
 		timeout = c.toolRunTimeout
 	}
 
 	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(timeout)
 	defer cancel()
-	signal := make(chan struct{})
+	signal := make(chan struct{}) // 无缓冲通道
 	go func() {
+		defer close(signal) // 关闭通道广播完成
 		defer func() {
 			if p := recover(); p != nil {
-				err = fmt.Errorf("tool %s run failed, try another tool, error: %v",
-					f.GetName(), string(debug.Stack()))
+				err = fmt.Errorf("panic: %v", p)
 			}
 		}()
+		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
-		select {
-		case <-runCtx.Done():
-			return
-		case signal <- struct{}{}:
+		if err != nil {
+			c.logger.Error(fmt.Sprintf("Execute: %s", err.Error()))
 		}
+		end := time.Now()
+		c.logger.Info(fmt.Sprintf("Execute: %s, cost: %v", f.GetName(), end.Sub(begin)))
 	}()
-	for {
-		select {
-		case <-t.C:
-			cancel()
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
-			return nil, err
-		case <-runCtx.Done():
-			if runCtx.Err() != nil {
-				return output, runCtx.Err()
-			}
-			return output, err
-		case <-signal:
-			return output, err
+	t := time.NewTimer(timeout)
+	defer t.Stop() // 确保定时器释放
+
+	select {
+	case <-t.C:
+		cancel()
+		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
+	case <-runCtx.Done():
+		if err != nil {
+			return output, err // 工具错误优先
 		}
+		return output, runCtx.Err()
+	case <-signal:
+		return output, err
 	}
 }
 
