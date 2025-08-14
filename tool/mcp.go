@@ -135,9 +135,7 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	req.Params.Arguments = params
 	errp := m.Cache.Cli.Ping(ctx)
 	if errp != nil {
-		cli := m.Cache.Cli.(*client.Client)
-		cli.GetTransport().Start(ctx)
-		m.Cache.Cli = cli
+		return nil, fmt.Errorf("mcp client ping error: %v", errp)
 	}
 	result, err := m.Cache.Cli.CallTool(ctx, req)
 	if err != nil {
