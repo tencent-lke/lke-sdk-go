@@ -133,11 +133,13 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	req := mcp.CallToolRequest{}
 	req.Params.Name = m.Name
 	req.Params.Arguments = params
-	toolCtx, toolCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	toolCtx, toolCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer toolCancel()
 	errp := m.Cache.Cli.Ping(toolCtx)
 	if errp != nil {
-		return nil, fmt.Errorf("mcp client ping error: %v", errp)
+		cli := m.Cache.Cli.(*client.Client)
+		cli.GetTransport().Start(ctx)
+		m.Cache.Cli = cli
 	}
 	result, err := m.Cache.Cli.CallTool(ctx, req)
 	if err != nil {
