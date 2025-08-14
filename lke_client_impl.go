@@ -321,6 +321,9 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
+	if c.logger != nil {
+		c.logger.Error(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
+	}
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
 		return f.Execute(ctx, input)
 	}
@@ -344,17 +347,23 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
 		if err != nil {
-			c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
+			if c.logger != nil {
+				c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
+			}
 		}
 		end := time.Now()
-		c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
+		if c.logger != nil {
+			c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
+		}
 	}()
 	t := time.NewTimer(timeout)
 	defer t.Stop() // 确保定时器释放
 
 	select {
 	case <-t.C:
-		c.logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
+		if c.logger != nil {
+			c.logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
+		}
 		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 	case <-runCtx.Done():
 		if err != nil {
@@ -362,7 +371,6 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		}
 		return output, runCtx.Err()
 	case <-signal:
-		c.logger.Error(fmt.Sprintf("run tool %s signal", f.GetName()))
 		return output, err
 	}
 }
