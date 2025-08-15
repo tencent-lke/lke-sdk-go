@@ -155,7 +155,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClientconf conf.McpClientCo
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %v", err)
 	}
-	cache, err := tool.NewMcpClientCache(mcpClient, mcpClientconf)
+	cache, err := tool.NewMcpClientCache(mcpClient, mcpClientconf, initRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}

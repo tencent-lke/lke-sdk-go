@@ -18,6 +18,7 @@ type mcpClientCache struct {
 	OrderedName   []string
 	LastFetchTime time.Time
 	mcpClientConf conf.McpClientConf
+	initRequest   mcp.InitializeRequest
 }
 
 func replaceDefaultWithJson(m map[string]interface{}) error {
@@ -60,12 +61,16 @@ func (cache *mcpClientCache) ReConnect() error {
 	if err := mcpClient.Start(context.Background()); err != nil {
 		return err
 	}
+	_, err = mcpClient.Initialize(context.Background(), cache.initRequest)
+	if err != nil {
+		return fmt.Errorf("failed to initialize: %v, %v", err, cache.initRequest)
+	}
 	cache.Cli = mcpClient
 	return nil
 }
 
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf) (*mcpClientCache, error) {
+func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf, initR mcp.InitializeRequest) (*mcpClientCache, error) {
 	if cli == nil {
 		return nil, fmt.Errorf("mcp client is nil")
 	}
@@ -79,6 +84,7 @@ func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf) (
 		Data:          map[string]mcp.Tool{},
 		OrderedName:   []string{},
 		mcpClientConf: mcpClientConf,
+		initRequest:   initR,
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
