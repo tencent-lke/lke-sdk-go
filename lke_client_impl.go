@@ -13,8 +13,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
+	"github.com/tencent-lke/lke-sdk-go/conf"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -126,18 +128,26 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
+func (c *lkeClient) AddMcpTools(agentName string, mcpClientconf conf.McpClientConf,
 	impl mcp.Implementation, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
 	// Initialize the client
 	initRequest := mcp.InitializeRequest{}
 	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
 	initRequest.Params.ClientInfo = impl
+	option := transport.WithHeaders(mcpClientconf.Header)
+	mcpClient, err := client.NewSSEMCPClient(mcpClientconf.SseUrl, option)
+	if err != nil {
+		return addTools, err
+	}
+	if err := mcpClient.Start(context.Background()); err != nil {
+		return addTools, err
+	}
 	_, err = mcpClient.Initialize(context.Background(), initRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %v", err)
 	}
-	cache, err := tool.NewMcpClientCache(mcpClient)
+	cache, err := tool.NewMcpClientCache(mcpClient, mcpClientconf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}

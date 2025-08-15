@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/tencent-lke/lke-sdk-go/conf"
 )
 
 type mcpClientCache struct {
@@ -15,6 +17,7 @@ type mcpClientCache struct {
 	Data          map[string]mcp.Tool
 	OrderedName   []string
 	LastFetchTime time.Time
+	mcpClientConf conf.McpClientConf
 }
 
 func replaceDefaultWithJson(m map[string]interface{}) error {
@@ -48,8 +51,21 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 	return schema
 }
 
+func (cache *mcpClientCache) ReConnect() error {
+	option := transport.WithHeaders(cache.mcpClientConf.Header)
+	mcpClient, err := client.NewSSEMCPClient(cache.mcpClientConf.SseUrl, option)
+	if err != nil {
+		return err
+	}
+	if err := mcpClient.Start(context.Background()); err != nil {
+		return err
+	}
+	cache.Cli = mcpClient
+	return nil
+}
+
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(cli client.MCPClient) (*mcpClientCache, error) {
+func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf) (*mcpClientCache, error) {
 	if cli == nil {
 		return nil, fmt.Errorf("mcp client is nil")
 	}
@@ -62,6 +78,7 @@ func NewMcpClientCache(cli client.MCPClient) (*mcpClientCache, error) {
 		LastFetchTime: time.Now(),
 		Data:          map[string]mcp.Tool{},
 		OrderedName:   []string{},
+		mcpClientConf: mcpClientConf,
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
@@ -137,9 +154,9 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 	defer toolCancel()
 	errp := m.Cache.Cli.Ping(toolCtx)
 	if errp != nil {
-		cli := m.Cache.Cli.(*client.Client)
-		cli.GetTransport().Start(ctx)
-		m.Cache.Cli = cli
+		if errr := m.Cache.ReConnect(); errr != nil {
+			return nil, fmt.Errorf("mcp client ping error: %v, reconnect error: %v", errp, errr)
+		}
 	}
 	result, err := m.Cache.Cli.CallTool(ctx, req)
 	if err != nil {
