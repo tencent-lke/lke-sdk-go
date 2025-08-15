@@ -77,8 +77,8 @@ type LkeClient interface {
 	// SetHttpClient 设置本地工具调用的超时时间
 	SetToolRunTimeout(toolRunTimeout time.Duration)
 
-	// SetRunLogger 设置 sdk 执行日志 logger
-	SetRunLogger(logger RunLogger)
+	// // SetRunLogger 设置 sdk 执行日志 logger
+	// SetRunLogger(logger RunLogger)
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters,

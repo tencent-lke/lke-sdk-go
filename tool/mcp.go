@@ -18,6 +18,7 @@ type mcpClientCache struct {
 	OrderedName   []string
 	LastFetchTime time.Time
 	mcpClientConf conf.McpClientConf
+	initRequest   mcp.InitializeRequest
 }
 
 func replaceDefaultWithJson(m map[string]interface{}) error {
@@ -51,6 +52,14 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 	return schema
 }
 
+// func (cache *mcpClientCache) InitRequest() error {
+// 	_, err := cache.Cli.Initialize(context.Background(), cache.initRequest)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
+
 func (cache *mcpClientCache) ReConnect() error {
 	option := transport.WithHeaders(cache.mcpClientConf.Header)
 	mcpClient, err := client.NewSSEMCPClient(cache.mcpClientConf.SseUrl, option)
@@ -60,12 +69,17 @@ func (cache *mcpClientCache) ReConnect() error {
 	if err := mcpClient.Start(context.Background()); err != nil {
 		return err
 	}
+	_, err1 := mcpClient.Initialize(context.Background(), cache.initRequest)
+	if err1 != nil {
+		return err1
+	}
 	cache.Cli = mcpClient
 	return nil
 }
 
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf) (*mcpClientCache, error) {
+func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf,
+	initRequest mcp.InitializeRequest) (*mcpClientCache, error) {
 	if cli == nil {
 		return nil, fmt.Errorf("mcp client is nil")
 	}
@@ -79,6 +93,7 @@ func NewMcpClientCache(cli client.MCPClient, mcpClientConf conf.McpClientConf) (
 		Data:          map[string]mcp.Tool{},
 		OrderedName:   []string{},
 		mcpClientConf: mcpClientConf,
+		initRequest:   initRequest,
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
@@ -158,6 +173,9 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 			return nil, fmt.Errorf("mcp client ping error: %v, reconnect error: %v", errp, errr)
 		}
 	}
+	// if err := m.Cache.InitRequest(); err != nil {
+	// 	return nil, fmt.Errorf("mcp client init request error: %v", err)
+	// }
 	result, err := m.Cache.Cli.CallTool(ctx, req)
 	if err != nil {
 		return nil, err

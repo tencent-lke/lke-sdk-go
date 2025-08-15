@@ -1,6 +1,6 @@
-package lkesdk
+// Package event contains event definitions.
+package lkelog
 
-// RunLogger is an interface for logging information and errors during execution.
 type RunLogger interface {
 	// Info logs information with a specified message.
 	Info(message string)
@@ -8,3 +8,13 @@ type RunLogger interface {
 	// Error logs error information with a specified message.
 	Error(message string)
 }
+
+var Logger RunLogger
+
+func SetRunLogger(l RunLogger) {
+	Logger = l
+}
+
+// func SetRunLogger(l RunLogger) {
+// 	logger = l
+// }

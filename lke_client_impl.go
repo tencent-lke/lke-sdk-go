@@ -18,6 +18,7 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/tencent-lke/lke-sdk-go/conf"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/lkelog"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 	sse "github.com/tmaxmax/go-sse"
@@ -40,10 +41,10 @@ type lkeClient struct {
 	handoffs        []model.Handoff
 	enableSystemOpt bool
 	startAgent      string
-	logger          RunLogger
-	toolRunTimeout  time.Duration
-	maxToolTurns    uint // 单次对话本地工具调用最大次数
-	closed          atomic.Bool
+	// logger          RunLogger
+	toolRunTimeout time.Duration
+	maxToolTurns   uint // 单次对话本地工具调用最大次数
+	closed         atomic.Bool
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -103,10 +104,10 @@ func (c *lkeClient) SetToolRunTimeout(toolRunTimeout time.Duration) {
 	c.toolRunTimeout = toolRunTimeout
 }
 
-// SetRunLogger 设置 sdk 执行日志 logger
-func (c *lkeClient) SetRunLogger(logger RunLogger) {
-	c.logger = logger
-}
+// // SetRunLogger 设置 sdk 执行日志 logger
+// func (c *lkeClient) SetRunLogger(logger RunLogger) {
+// 	lkelog.Logger = logger
+// }
 
 // AddFunctionTools 增加函数 tools
 func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionTool) {
@@ -147,7 +148,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpClientconf conf.McpClientCo
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize: %v", err)
 	}
-	cache, err := tool.NewMcpClientCache(mcpClient, mcpClientconf)
+	cache, err := tool.NewMcpClientCache(mcpClient, mcpClientconf, initRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
@@ -290,8 +291,8 @@ func (c *lkeClient) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
-	if c.logger != nil {
-		c.logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
+	if lkelog.Logger != nil {
+		lkelog.Logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
 	}
 	payload := bytes.NewReader(bs)
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
@@ -318,12 +319,12 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 		}
 		finalReply, finalErr = c.handlerEvent([]byte(ev.Data))
 	}
-	if c.logger != nil {
+	if lkelog.Logger != nil {
 		if finalErr != nil {
-			c.logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
+			lkelog.Logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
 		} else {
 			bs, _ := json.Marshal(finalReply)
-			c.logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
+			lkelog.Logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
 		}
 	}
 	return finalReply, finalErr
@@ -331,8 +332,8 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
-	if c.logger != nil {
-		c.logger.Error(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
+	if lkelog.Logger != nil {
+		lkelog.Logger.Error(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
 	}
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
 		return f.Execute(ctx, input)
@@ -357,13 +358,13 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
 		if err != nil {
-			if c.logger != nil {
-				c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
+			if lkelog.Logger != nil {
+				lkelog.Logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
 			}
 		}
 		end := time.Now()
-		if c.logger != nil {
-			c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
+		if lkelog.Logger != nil {
+			lkelog.Logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
 		}
 	}()
 	t := time.NewTimer(timeout)
@@ -371,8 +372,8 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 
 	select {
 	case <-t.C:
-		if c.logger != nil {
-			c.logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
+		if lkelog.Logger != nil {
+			lkelog.Logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
 		}
 		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 	case <-runCtx.Done():
