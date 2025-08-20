@@ -11,7 +11,7 @@ import (
 )
 
 type mcpClientCache struct {
-	McpServerSse  mcpserversse.McpServerSse
+	McpServerSse  *mcpserversse.McpServerSse
 	Data          map[string]mcp.Tool
 	OrderedName   []string
 	LastFetchTime time.Time
@@ -66,7 +66,7 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 // }
 
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(mcpServerSse mcpserversse.McpServerSse) (*mcpClientCache, error) {
+func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse) (*mcpClientCache, error) {
 	cache := &mcpClientCache{
 		McpServerSse:  mcpServerSse,
 		LastFetchTime: time.Now(),
@@ -160,7 +160,7 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 }
 
 // ListMcpTools 获取 mcp 工具列表
-func ListMcpTools(mcpserver mcpserversse.McpServerSse) (res *mcp.ListToolsResult, err error) {
+func ListMcpTools(mcpserver *mcpserversse.McpServerSse) (res *mcp.ListToolsResult, err error) {
 	ctx := context.Background()
 	runCtx, cancel := context.WithCancel(ctx)
 	t := time.NewTimer(5 * time.Second)

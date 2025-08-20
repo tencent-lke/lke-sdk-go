@@ -17,7 +17,7 @@ type LkeClient interface {
 	AddFunctionTools(agentName string, tools []*tool.FunctionTool)
 
 	// AddMcpTools 增加 mcptools
-	AddMcpTools(agentName string, mcpServerSse mcpserversse.McpServerSse,
+	AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
 		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
 	// AddAgents 添加一批 agents

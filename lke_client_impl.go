@@ -133,9 +133,8 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse mcpserversse.McpServerSse, selectedToolNames []string) (
+func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
-	mcpServerSse.Init()
 	cache, err := tool.NewMcpClientCache(mcpServerSse)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
