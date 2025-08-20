@@ -322,6 +322,7 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
 		return f.Execute(ctx, input)
 	}
+	c.logger.Info(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
 	var timeout time.Duration
 	if f.GetTimeout() != 0 {
 		timeout = f.GetTimeout()
@@ -340,11 +341,6 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 		}()
 		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
-		// if err != nil {
-		// 	if c.logger != nil {
-		// 		c.logger.Error(fmt.Sprintf("runWithTimeoutExecute: %s", err.Error()))
-		// 	}
-		// }
 		end := time.Now()
 		if c.logger != nil {
 			c.logger.Info(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
@@ -355,9 +351,6 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 
 	select {
 	case <-t.C:
-		// if c.logger != nil {
-		// 	c.logger.Error(fmt.Sprintf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds())))
-		// }
 		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
 	case <-runCtx.Done():
 		if err != nil {
