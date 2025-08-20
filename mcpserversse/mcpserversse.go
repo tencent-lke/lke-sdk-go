@@ -18,6 +18,14 @@ type McpServerSse struct {
 	Cli         *client.Client
 }
 
+func NewMcpServerSse(sseurl string, option transport.ClientOption, initrequest mcp.InitializeRequest) McpServerSse {
+	return McpServerSse{
+		SseUrl:      sseurl,
+		Option:      option,
+		InitRequest: initrequest,
+	}
+}
+
 func (sse *McpServerSse) init() error {
 	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, sse.Option)
 	if err != nil {
