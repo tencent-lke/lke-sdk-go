@@ -24,9 +24,7 @@ func NewMcpServerSse(sseurl string, option transport.ClientOption, initrequest m
 		Option:      option,
 		InitRequest: initrequest,
 	}
-	if err := mcpsse.init(); err != nil {
-		return nil
-	}
+	mcpsse.init()
 	return mcpsse
 }
 
