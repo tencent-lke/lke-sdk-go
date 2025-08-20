@@ -322,7 +322,9 @@ func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
 		return f.Execute(ctx, input)
 	}
-	c.logger.Info(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
+	if c.logger != nil {
+		c.logger.Info(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
+	}
 	var timeout time.Duration
 	if f.GetTimeout() != 0 {
 		timeout = f.GetTimeout()
