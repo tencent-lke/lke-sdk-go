@@ -48,23 +48,6 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 	return schema
 }
 
-// func (cache *mcpClientCache) ReConnect() error {
-// 	option := transport.WithHeaders(cache.mcpClientConf.Header)
-// 	mcpClient, err := client.NewSSEMCPClient(cache.mcpClientConf.SseUrl, option)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err := mcpClient.Start(context.Background()); err != nil {
-// 		return err
-// 	}
-// 	_, err = mcpClient.Initialize(context.Background(), cache.initRequest)
-// 	if err != nil {
-// 		return fmt.Errorf("failed to initialize: %v, %v", err, cache.initRequest)
-// 	}
-// 	cache.Cli = mcpClient
-// 	return nil
-// }
-
 // 构建一个新的 mcp client cache
 func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse) (*mcpClientCache, error) {
 	cache := &mcpClientCache{

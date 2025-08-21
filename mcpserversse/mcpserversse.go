@@ -13,15 +13,15 @@ import (
 // McpServerSse
 type McpServerSse struct {
 	SseUrl      string
-	Option      transport.ClientOption
+	Options     []transport.ClientOption
 	InitRequest mcp.InitializeRequest
 	Cli         *client.Client
 }
 
-func NewMcpServerSse(sseurl string, option transport.ClientOption, initrequest mcp.InitializeRequest) *McpServerSse {
+func NewMcpServerSse(sseurl string, options []transport.ClientOption, initrequest mcp.InitializeRequest) *McpServerSse {
 	mcpsse := &McpServerSse{
 		SseUrl:      sseurl,
-		Option:      option,
+		Options:     options,
 		InitRequest: initrequest,
 	}
 	mcpsse.init()
@@ -29,7 +29,7 @@ func NewMcpServerSse(sseurl string, option transport.ClientOption, initrequest m
 }
 
 func (sse *McpServerSse) init() error {
-	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, sse.Option)
+	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, sse.Options...)
 	if err != nil {
 		return err
 	}
