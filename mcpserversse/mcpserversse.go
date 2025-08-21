@@ -14,19 +14,19 @@ import (
 
 // McpServerSse
 type McpServerSse struct {
-	SseUrl      string
-	Options     []transport.ClientOption
-	InitRequest mcp.InitializeRequest
-	Httptimeout int64
-	Cli         *client.Client
+	SseUrl               string
+	Options              []transport.ClientOption
+	InitRequest          mcp.InitializeRequest
+	ClientSessionTimeout int64
+	Cli                  *client.Client
 }
 
-func NewMcpServerSse(sseurl string, options []transport.ClientOption, initrequest mcp.InitializeRequest, httptimeout int64) *McpServerSse {
+func NewMcpServerSse(sseurl string, options []transport.ClientOption, initrequest mcp.InitializeRequest, clientsessiontimeout int64) *McpServerSse {
 	mcpsse := &McpServerSse{
-		SseUrl:      sseurl,
-		Options:     options,
-		InitRequest: initrequest,
-		Httptimeout: httptimeout,
+		SseUrl:               sseurl,
+		Options:              options,
+		InitRequest:          initrequest,
+		ClientSessionTimeout: clientsessiontimeout,
 	}
 	mcpsse.init()
 	return mcpsse
@@ -34,9 +34,9 @@ func NewMcpServerSse(sseurl string, options []transport.ClientOption, initreques
 
 func (sse *McpServerSse) init() error {
 	options := sse.Options
-	if sse.Httptimeout > 0 {
+	if sse.ClientSessionTimeout > 0 {
 		httpClient := &http.Client{
-			Timeout: time.Duration(sse.Httptimeout) * time.Second,
+			Timeout: time.Duration(sse.ClientSessionTimeout) * time.Second,
 		}
 		options = append(options, transport.WithHTTPClient(httpClient))
 	}
