@@ -33,13 +33,14 @@ func NewMcpServerSse(sseurl string, options []transport.ClientOption, initreques
 }
 
 func (sse *McpServerSse) init() error {
+	options := sse.Options
 	if sse.Httptimeout > 0 {
 		httpClient := &http.Client{
 			Timeout: time.Duration(sse.Httptimeout) * time.Second,
 		}
-		sse.Options = append(sse.Options, transport.WithHTTPClient(httpClient))
+		options = append(options, transport.WithHTTPClient(httpClient))
 	}
-	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, sse.Options...)
+	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, options...)
 	if err != nil {
 		return err
 	}
