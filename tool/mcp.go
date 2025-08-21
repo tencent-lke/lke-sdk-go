@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 )
 
 type mcpClientCache struct {
-	Cli           client.MCPClient
+	McpServerSse  *mcpserversse.McpServerSse
 	Data          map[string]mcp.Tool
 	OrderedName   []string
 	LastFetchTime time.Time
@@ -49,19 +49,16 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 }
 
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(cli client.MCPClient) (*mcpClientCache, error) {
-	if cli == nil {
-		return nil, fmt.Errorf("mcp client is nil")
-	}
-	rsp, err := ListMcpTools(cli)
-	if err != nil {
-		return nil, fmt.Errorf("mcp client is list tools error: %v", err)
-	}
+func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse) (*mcpClientCache, error) {
 	cache := &mcpClientCache{
-		Cli:           cli,
+		McpServerSse:  mcpServerSse,
 		LastFetchTime: time.Now(),
 		Data:          map[string]mcp.Tool{},
 		OrderedName:   []string{},
+	}
+	rsp, err := ListMcpTools(mcpServerSse)
+	if err != nil {
+		return nil, fmt.Errorf("mcp client is list tools error: %v", err)
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool
@@ -78,7 +75,7 @@ func (cache *mcpClientCache) fetch() {
 	}()
 	// 2s 刷新一次
 	if time.Now().After(cache.LastFetchTime.Add(2 * time.Second)) {
-		rsp, err := ListMcpTools(cache.Cli)
+		rsp, err := ListMcpTools(cache.McpServerSse)
 		if err != nil {
 			return
 		}
@@ -127,13 +124,18 @@ func (m *McpTool) GetParametersSchema() map[string]interface{} {
 
 // Execute executes the tool with the given parameter
 func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	if m.Cache == nil || m.Cache.Cli == nil {
-		return nil, fmt.Errorf("mcp client is nil")
-	}
 	req := mcp.CallToolRequest{}
 	req.Params.Name = m.Name
 	req.Params.Arguments = params
-	result, err := m.Cache.Cli.CallTool(ctx, req)
+	toolCtx, toolCancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer toolCancel()
+	errp := m.Cache.McpServerSse.Ping(toolCtx)
+	if errp != nil {
+		if errr := m.Cache.McpServerSse.ReConnect(); errr != nil {
+			return nil, fmt.Errorf("mcp client ping error: %v, reconnect error: %v", errp, errr)
+		}
+	}
+	result, err := m.Cache.McpServerSse.CallTool(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +143,7 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 }
 
 // ListMcpTools 获取 mcp 工具列表
-func ListMcpTools(cli client.MCPClient) (res *mcp.ListToolsResult, err error) {
+func ListMcpTools(mcpserver *mcpserversse.McpServerSse) (res *mcp.ListToolsResult, err error) {
 	ctx := context.Background()
 	runCtx, cancel := context.WithCancel(ctx)
 	t := time.NewTimer(5 * time.Second)
@@ -155,11 +157,11 @@ func ListMcpTools(cli client.MCPClient) (res *mcp.ListToolsResult, err error) {
 			case signal <- struct{}{}:
 			}
 		}()
-		if err = cli.Ping(ctx); err != nil {
+		if err = mcpserver.Ping(ctx); err != nil {
 			return
 		}
 		toolsRequest := mcp.ListToolsRequest{}
-		res, err = cli.ListTools(runCtx, toolsRequest)
+		res, err = mcpserver.ListTools(runCtx, toolsRequest)
 	}()
 	for {
 		select {

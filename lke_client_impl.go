@@ -12,10 +12,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/openai/openai-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 	sse "github.com/tmaxmax/go-sse"
@@ -24,6 +23,14 @@ import (
 const (
 	DefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
 )
+
+type RunLogger interface {
+	// Info logs information with a specified message.
+	Info(message string)
+
+	// Error logs error information with a specified message.
+	Error(message string)
+}
 
 // lkeClient represents a client for interacting with the LKE service
 type lkeClient struct {
@@ -126,18 +133,9 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 }
 
 // AddMcpTools 增加 mcptools
-func (c *lkeClient) AddMcpTools(agentName string, mcpClient client.MCPClient,
-	impl mcp.Implementation, selectedToolNames []string) (
+func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
-	// Initialize the client
-	initRequest := mcp.InitializeRequest{}
-	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
-	initRequest.Params.ClientInfo = impl
-	_, err = mcpClient.Initialize(context.Background(), initRequest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize: %v", err)
-	}
-	cache, err := tool.NewMcpClientCache(mcpClient)
+	cache, err := tool.NewMcpClientCache(mcpServerSse)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
@@ -322,49 +320,47 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 func (c *lkeClient) runWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
-		// 没有设置超时时间
 		return f.Execute(ctx, input)
+	}
+	if c.logger != nil {
+		c.logger.Info(fmt.Sprintf("runWithTimeout: %s", f.GetName()))
 	}
 	var timeout time.Duration
 	if f.GetTimeout() != 0 {
-		// 优先用工具的超时时间
 		timeout = f.GetTimeout()
 	} else {
 		timeout = c.toolRunTimeout
 	}
-
 	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(timeout)
 	defer cancel()
-	signal := make(chan struct{})
+	signal := make(chan struct{}) // 无缓冲通道
 	go func() {
+		defer close(signal) // 关闭通道广播完成
 		defer func() {
 			if p := recover(); p != nil {
-				err = fmt.Errorf("tool %s run failed, try another tool, error: %v",
-					f.GetName(), string(debug.Stack()))
+				err = fmt.Errorf("panic: %v", p)
 			}
 		}()
+		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
-		select {
-		case <-runCtx.Done():
-			return
-		case signal <- struct{}{}:
+		end := time.Now()
+		if c.logger != nil {
+			c.logger.Info(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
 		}
 	}()
-	for {
-		select {
-		case <-t.C:
-			cancel()
-			err = fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
-			return nil, err
-		case <-runCtx.Done():
-			if runCtx.Err() != nil {
-				return output, runCtx.Err()
-			}
-			return output, err
-		case <-signal:
-			return output, err
+	t := time.NewTimer(timeout)
+	defer t.Stop() // 确保定时器释放
+
+	select {
+	case <-t.C:
+		return nil, fmt.Errorf("run tool %s timeout %ds", f.GetName(), int(timeout.Seconds()))
+	case <-runCtx.Done():
+		if err != nil {
+			return output, err // 工具错误优先
 		}
+		return output, runCtx.Err()
+	case <-signal:
+		return output, err
 	}
 }
 

@@ -5,9 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mark3labs/mcp-go/client"
-	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
@@ -18,7 +17,7 @@ type LkeClient interface {
 	AddFunctionTools(agentName string, tools []*tool.FunctionTool)
 
 	// AddMcpTools 增加 mcptools
-	AddMcpTools(agentName string, mcpClient client.MCPClient, impl mcp.Implementation,
+	AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
 		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
 	// AddAgents 添加一批 agents
