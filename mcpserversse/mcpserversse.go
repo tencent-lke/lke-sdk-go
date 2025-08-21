@@ -4,6 +4,8 @@ package mcpserversse
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/client/transport"
@@ -15,20 +17,28 @@ type McpServerSse struct {
 	SseUrl      string
 	Options     []transport.ClientOption
 	InitRequest mcp.InitializeRequest
+	Httptimeout int64
 	Cli         *client.Client
 }
 
-func NewMcpServerSse(sseurl string, options []transport.ClientOption, initrequest mcp.InitializeRequest) *McpServerSse {
+func NewMcpServerSse(sseurl string, options []transport.ClientOption, initrequest mcp.InitializeRequest, httptimeout int64) *McpServerSse {
 	mcpsse := &McpServerSse{
 		SseUrl:      sseurl,
 		Options:     options,
 		InitRequest: initrequest,
+		Httptimeout: httptimeout,
 	}
 	mcpsse.init()
 	return mcpsse
 }
 
 func (sse *McpServerSse) init() error {
+	if sse.Httptimeout > 0 {
+		httpClient := &http.Client{
+			Timeout: time.Duration(sse.Httptimeout) * time.Second,
+		}
+		sse.Options = append(sse.Options, transport.WithHTTPClient(httpClient))
+	}
 	mcpClient, err := client.NewSSEMCPClient(sse.SseUrl, sse.Options...)
 	if err != nil {
 		return err
