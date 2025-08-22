@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/model"
 )
 
@@ -20,10 +21,10 @@ const (
 
 // MyEventHandler 创建自定义事件处理器
 type MyEventHandler struct {
-	lkesdk.DefaultEventHandler // 引用默认实现
-	traceID                    string
-	runNodes                   []string
-	runNodeMap                 map[string]*event.RunNodeInfo
+	eventhandler.DefaultEventHandler // 引用默认实现
+	traceID                          string
+	runNodes                         []string
+	runNodeMap                       map[string]*event.RunNodeInfo
 }
 
 // OnReply 自定义回复处理事件

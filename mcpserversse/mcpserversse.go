@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mark3labs/mcp-go/client"
@@ -32,7 +33,24 @@ func NewMcpServerSse(sseurl string, options []transport.ClientOption, initreques
 	return mcpsse
 }
 
+func isHTTPURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+func (sse *McpServerSse) initlocal() error {
+	mcpClient, err := client.NewStdioMCPClient(
+		"python3",
+		[]string{}, // Empty ENV
+		sse.SseUrl,
+	)
+	sse.Cli = mcpClient
+	return err
+}
+
 func (sse *McpServerSse) init() error {
+	if !isHTTPURL(sse.SseUrl) {
+		return sse.initlocal()
+	}
 	options := sse.Options
 	if sse.ClientSessionTimeout > 0 {
 		httpClient := &http.Client{

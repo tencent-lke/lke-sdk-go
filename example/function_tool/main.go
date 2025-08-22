@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
@@ -23,7 +24,7 @@ const (
 
 // MyEventHandler 自定义事件处理器
 type MyEventHandler struct {
-	lkesdk.DefaultEventHandler // 引用默认实现
+	eventhandler.DefaultEventHandler // 引用默认实现
 }
 
 // Location 地址

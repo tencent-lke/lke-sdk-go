@@ -14,9 +14,12 @@ import (
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
+	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
@@ -62,10 +65,10 @@ func buildPlaywrightMcpClient() mcpclient.MCPClient {
 
 // MyEventHandler 创建自定义事件处理器
 type MyEventHandler struct {
-	lastReply                  string
-	replying                   bool
-	lastThought                string
-	lkesdk.DefaultEventHandler // 引用默认实现
+	lastReply                        string
+	replying                         bool
+	lastThought                      string
+	eventhandler.DefaultEventHandler // 引用默认实现
 }
 
 // OnReply 自定义回复处理事件，使用增量输出 repley
@@ -124,7 +127,7 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 // AfterToolCallHook 工具调用后的钩子
 // 如果是自定义的函数，output 类型是自定义函数的返回
 // 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
-func (e *MyEventHandler) AfterToolCallHook(callCtx lkesdk.ToolCallContext) {
+func (e *MyEventHandler) AfterToolCallHook(callCtx eventhandler.ToolCallContext) {
 	inputbs, _ := json.Marshal(callCtx.Input)
 	outbs := []byte{}
 	if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
@@ -164,14 +167,23 @@ func main() {
 		"涉及到实际浏览器控制和操作的需求都可以交给我。",
 		model.ModelFunctionCallPro,
 	)
+	_, f1, _, _ := runtime.Caller(0)
+	serverPath := path.Join(path.Dir(f1), "server.py")
 	client.AddAgents([]model.Agent{downloadAgent, browserAgent})
 	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
 	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
-
-	addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
-		Name:    "text",
-		Version: "1.0.0",
-	}, nil)
+	var initrequest mcp.InitializeRequest
+	mcpserversse := mcpserversse.NewMcpServerSse(
+		serverPath,
+		[]transport.ClientOption{},
+		initrequest,
+		30,
+	)
+	// addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
+	// 	Name:    "text",
+	// 	Version: "1.0.0",
+	// }, nil)
+	addTools, err := client.AddMcpTools(browserAgent.Name, mcpserversse, nil)
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}
