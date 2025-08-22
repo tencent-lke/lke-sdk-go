@@ -14,8 +14,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/runlog"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 	sse "github.com/tmaxmax/go-sse"
 )
@@ -24,19 +26,11 @@ const (
 	DefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
 )
 
-type RunLogger interface {
-	// Info logs information with a specified message.
-	Info(message string)
-
-	// Error logs error information with a specified message.
-	Error(message string)
-}
-
 // lkeClient represents a client for interacting with the LKE service
 type lkeClient struct {
 	botAppKey    string // 机器人密钥 (从运营接口人处获取)
 	endpoint     string // 调用地址
-	eventHandler EventHandler
+	eventHandler eventhandler.EventHandler
 	mock         bool
 	httpClient   *http.Client
 
@@ -45,7 +39,7 @@ type lkeClient struct {
 	handoffs        []model.Handoff
 	enableSystemOpt bool
 	startAgent      string
-	logger          RunLogger
+	logger          runlog.RunLogger
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
@@ -72,7 +66,7 @@ func (c *lkeClient) SetEndpoint(endpoint string) {
 }
 
 // SetEventHandler 设置时间处理函数
-func (c *lkeClient) SetEventHandler(eventHandler EventHandler) {
+func (c *lkeClient) SetEventHandler(eventHandler eventhandler.EventHandler) {
 	c.eventHandler = eventHandler
 }
 
@@ -109,7 +103,7 @@ func (c *lkeClient) SetToolRunTimeout(toolRunTimeout time.Duration) {
 }
 
 // SetRunLogger 设置 sdk 执行日志 logger
-func (c *lkeClient) SetRunLogger(logger RunLogger) {
+func (c *lkeClient) SetRunLogger(logger runlog.RunLogger) {
 	c.logger = logger
 }
 
@@ -429,7 +423,7 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 						input[k] = v
 					}
 				}
-				toolCallCtx := ToolCallContext{
+				toolCallCtx := eventhandler.ToolCallContext{
 					CallTool: f,
 					CallId:   toolCall.ID,
 					Input:    input,

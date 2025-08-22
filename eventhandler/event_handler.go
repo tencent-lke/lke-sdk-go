@@ -1,4 +1,4 @@
-package lkesdk
+package eventhandler
 
 import (
 	"github.com/tencent-lke/lke-sdk-go/event"

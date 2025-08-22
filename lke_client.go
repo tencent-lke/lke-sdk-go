@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/runlog"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
@@ -56,7 +58,7 @@ type LkeClient interface {
 	SetEndpoint(endpoint string)
 
 	// SetEventHandler 设置时间处理函数
-	SetEventHandler(eventHandler EventHandler)
+	SetEventHandler(eventHandler eventhandler.EventHandler)
 
 	// SetMock 设置 Mock api 调用
 	SetMock(mock bool)
@@ -77,16 +79,16 @@ type LkeClient interface {
 	SetToolRunTimeout(toolRunTimeout time.Duration)
 
 	// SetRunLogger 设置 sdk 执行日志 logger
-	SetRunLogger(logger RunLogger)
+	SetRunLogger(logger runlog.RunLogger)
 }
 
 // NewLkeClient creates a new LKE client with the provided parameters,
 // botAppKey 知识引擎应用 id,
 // eventHandler 自定义事件处理
-func NewLkeClient(botAppKey string, eventHandler EventHandler) LkeClient {
+func NewLkeClient(botAppKey string, eventHandler eventhandler.EventHandler) LkeClient {
 	handler := eventHandler
 	if handler == nil {
-		handler = &DefaultEventHandler{}
+		handler = &eventhandler.DefaultEventHandler{}
 	}
 	return &lkeClient{
 		botAppKey:    botAppKey,
