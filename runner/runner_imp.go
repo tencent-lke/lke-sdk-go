@@ -19,26 +19,43 @@ import (
 	"github.com/tmaxmax/go-sse"
 )
 
-// runnerImp ...
-type runnerImp struct {
-	Name            string
-	toolsMap        map[string][]tool.Tool // agentName -> tool lists  的映射
-	agents          []model.Agent
-	handoffs        []model.Handoff
-	enableSystemOpt bool
-	startAgent      string
-	logger          runlog.RunLogger
-	eventHandler    eventhandler.EventHandler
-	maxToolTurns    uint // 单次对话本地工具调用最大次数
-	endpoint        string
+type RunnerConf struct {
+	EnableSystemOpt bool
+	StartAgent      string
+	Logger          runlog.RunLogger
+	EventHandler    eventhandler.EventHandler
+	MaxToolTurns    uint // 单次对话本地工具调用最大次数
+	Endpoint        string
+	HttpClient      *http.Client
 }
 
-func (c *runnerImp) QueryOnce(ctx context.Context, req *model.ChatRequest) (
-	finalReply *event.ReplyEvent, finalErr error) {
-	return
+// RunnerImp ...
+type RunnerImp struct {
+	toolsMap map[string][]tool.Tool // agentName -> tool lists  的映射
+	agents   []model.Agent
+	handoffs []model.Handoff
+	runconf  RunnerConf
+	// enableSystemOpt bool
+	// startAgent      string
+	// logger          runlog.RunLogger
+	// eventHandler    eventhandler.EventHandler
+	// maxToolTurns    uint // 单次对话本地工具调用最大次数
+	// endpoint        string
+	// httpClient      *http.Client
 }
 
-func (c *runnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
+func NewRunnerImp(toolsMap map[string][]tool.Tool, agents []model.Agent,
+	handoffs []model.Handoff, conf RunnerConf) *RunnerImp {
+	runner := &RunnerImp{
+		toolsMap: toolsMap,
+		agents:   agents,
+		handoffs: handoffs,
+		runconf:  conf,
+	}
+	return runner
+}
+
+func (c *RunnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	var timeout time.Duration
 	runCtx, cancel := context.WithCancel(ctx)
@@ -54,8 +71,8 @@ func (c *runnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 		begin := time.Now()
 		output, err = f.Execute(runCtx, input)
 		end := time.Now()
-		if c.logger != nil {
-			c.logger.Info(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
+		if c.runconf.Logger != nil {
+			c.runconf.Logger.Info(fmt.Sprintf("runWithTimeoutExecute: %s, cost: %v", f.GetName(), end.Sub(begin)))
 		}
 	}()
 	t := time.NewTimer(timeout)
@@ -74,7 +91,7 @@ func (c *runnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 	}
 }
 
-func (c *runnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
+func (c *RunnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 	reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
 		return
@@ -144,11 +161,11 @@ func (c *runnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 					CallId:   toolCall.ID,
 					Input:    input,
 				}
-				c.eventHandler.BeforeToolCallHook(toolCallCtx)
+				c.runconf.EventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.RunWithTimeout(ctx, f, input)
 				toolCallCtx.Output = toolout
 				toolCallCtx.Err = err
-				c.eventHandler.AfterToolCallHook(toolCallCtx)
+				c.runconf.EventHandler.AfterToolCallHook(toolCallCtx)
 				if err != nil {
 					(*output)[index] = fmt.Sprintf("Tool %s run failed, try another tool, error: %v",
 						toolCall.Function.Name, err)
@@ -164,7 +181,7 @@ func (c *runnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 	wg.Wait()
 }
 
-func (c *runnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey string,
+func (c *RunnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey string,
 	options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -181,8 +198,8 @@ func (c *runnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey st
 	req.AgentConfig.Agents = c.agents
 	// 构建 handoff 参数
 	req.AgentConfig.Handoffs = c.handoffs
-	req.AgentConfig.DisableSystemOpt = !c.enableSystemOpt
-	req.AgentConfig.StartAgentName = c.startAgent
+	req.AgentConfig.DisableSystemOpt = !c.runconf.EnableSystemOpt
+	req.AgentConfig.StartAgentName = c.runconf.StartAgent
 	// 构建工具参数
 	for agentName, toolFuncMap := range c.toolsMap {
 		if len(toolFuncMap) > 0 {
@@ -198,19 +215,19 @@ func (c *runnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey st
 	return req
 }
 
-func (c *runnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
+func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	finalReply *event.ReplyEvent, finalErr error) {
 	bs, _ := json.Marshal(req)
-	if c.logger != nil {
-		c.logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
+	if c.runconf.Logger != nil {
+		c.runconf.Logger.Info(fmt.Sprintf("[lkesdk]api call, request: %s", string(bs)))
 	}
 	payload := bytes.NewReader(bs)
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, payload)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, c.runconf.Endpoint, payload)
 	if err != nil {
 		return nil, fmt.Errorf("NewRequestWithContext error: %v", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
-	res, err := c.httpClient.Do(httpReq)
+	res, err := c.runconf.HttpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("httpClient do request error: %v", err)
 	}
@@ -218,32 +235,28 @@ func (c *runnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
 		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
 	}) {
-		// if c.closed.Load() {
-		// 	// client 关闭，不做任何处理
-		// 	return nil, fmt.Errorf("client has been closed")
-		// }
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}
 		finalReply, finalErr = c.handlerEvent([]byte(ev.Data))
 	}
-	if c.logger != nil {
+	if c.runconf.Logger != nil {
 		if finalErr != nil {
-			c.logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
+			c.runconf.Logger.Error(fmt.Sprintf("[lkesdk]api final error: %v", finalErr))
 		} else {
 			bs, _ := json.Marshal(finalReply)
-			c.logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
+			c.runconf.Logger.Info(fmt.Sprintf("[lkesdk]api final reply: %s", string(bs)))
 		}
 	}
 	return finalReply, finalErr
 }
 
-func (c *runnerImp) RunWithContext(ctx context.Context,
+func (c *RunnerImp) RunWithContext(ctx context.Context,
 	query, sesionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	var botAppKey string
 	req := c.buildReq(query, sesionID, visitorBizID, botAppKey, options)
-	for i := 0; i <= int(c.maxToolTurns); i++ {
+	for i := 0; i <= int(c.runconf.MaxToolTurns); i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {
 			return nil, err
@@ -270,7 +283,7 @@ func (c *runnerImp) RunWithContext(ctx context.Context,
 	return nil, fmt.Errorf("reached maximum tool call turns")
 }
 
-func (c *runnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
+func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 		}
@@ -283,21 +296,21 @@ func (c *runnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 			errEvent := event.ErrorEvent{}
 			json.Unmarshal(data, &errEvent)
 			err = fmt.Errorf("get error event: %s", string(data))
-			c.eventHandler.OnError(&errEvent)
+			c.runconf.EventHandler.OnError(&errEvent)
 			return nil, err
 		}
 	case event.EventReference:
 		{
 			refer := event.ReferenceEvent{}
 			json.Unmarshal(ev.Payload, &refer)
-			c.eventHandler.OnReference(&refer)
+			c.runconf.EventHandler.OnReference(&refer)
 			return nil, nil
 		}
 	case event.EventThought:
 		{
 			thought := event.AgentThoughtEvent{}
 			json.Unmarshal(ev.Payload, &thought)
-			c.eventHandler.OnThought(&thought)
+			c.runconf.EventHandler.OnThought(&thought)
 			return nil, nil
 		}
 	case event.EventReply:
@@ -308,7 +321,7 @@ func (c *runnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 				finalReply = &reply
 			}
 			if reply.ReplyMethod != event.ReplyMethodInterrupt {
-				c.eventHandler.OnReply(&reply)
+				c.runconf.EventHandler.OnReply(&reply)
 			}
 			return finalReply, nil
 		}
@@ -316,7 +329,7 @@ func (c *runnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			tokenStat := event.TokenStatEvent{}
 			json.Unmarshal(ev.Payload, &tokenStat)
-			c.eventHandler.OnTokenStat(&tokenStat)
+			c.runconf.EventHandler.OnTokenStat(&tokenStat)
 			return finalReply, nil
 		}
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/runlog"
+	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 	sse "github.com/tmaxmax/go-sse"
 )
@@ -456,35 +457,46 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 	if c.mock {
 		return c.mockRun()
 	}
-	req := c.buildReq(query, sesionID, visitorBizID, options)
-	for i := 0; i <= int(c.maxToolTurns); i++ {
-		if c.closed.Load() {
-			// client 关闭，不做任何处理
-			return nil, fmt.Errorf("client has been closed")
-		}
-		reply, err := c.queryOnce(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		if reply == nil {
-			return nil, fmt.Errorf("no final reply from server")
-		}
-		if reply.ReplyMethod != event.ReplyMethodInterrupt {
-			return reply, err
-		}
-		outputs := []string{}
-		if reply.InterruptInfo != nil {
-			outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
-		}
-		c.runTools(ctx, req, reply, &outputs)
-		req.ToolOuputs = nil
-		for i, out := range outputs {
-			req.ToolOuputs = append(req.ToolOuputs, model.ToolOuput{
-				ToolName: reply.InterruptInfo.ToolCalls[i].Function.Name,
-				Output:   out,
-			})
-		}
+	runconf := runner.RunnerConf{
+		Logger:       c.logger,
+		EventHandler: c.eventHandler,
+		MaxToolTurns: c.maxToolTurns,
 	}
+	runner := runner.NewRunnerImp(c.toolsMap,
+		c.agents,
+		c.handoffs,
+		runconf,
+	)
+	runner.RunWithContext(ctx, query, sesionID, visitorBizID, options)
+	// req := c.buildReq(query, sesionID, visitorBizID, options)
+	// for i := 0; i <= int(c.maxToolTurns); i++ {
+	// 	if c.closed.Load() {
+	// 		// client 关闭，不做任何处理
+	// 		return nil, fmt.Errorf("client has been closed")
+	// 	}
+	// 	reply, err := c.queryOnce(ctx, req)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	if reply == nil {
+	// 		return nil, fmt.Errorf("no final reply from server")
+	// 	}
+	// 	if reply.ReplyMethod != event.ReplyMethodInterrupt {
+	// 		return reply, err
+	// 	}
+	// 	outputs := []string{}
+	// 	if reply.InterruptInfo != nil {
+	// 		outputs = make([]string, len(reply.InterruptInfo.ToolCalls))
+	// 	}
+	// 	c.runTools(ctx, req, reply, &outputs)
+	// 	req.ToolOuputs = nil
+	// 	for i, out := range outputs {
+	// 		req.ToolOuputs = append(req.ToolOuputs, model.ToolOuput{
+	// 			ToolName: reply.InterruptInfo.ToolCalls[i].Function.Name,
+	// 			Output:   out,
+	// 		})
+	// 	}
+	// }
 	return nil, fmt.Errorf("reached maximum tool call turns")
 }
 

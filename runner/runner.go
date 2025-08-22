@@ -17,5 +17,4 @@ type Runner interface {
 	RunWithContext(ctx context.Context,
 		query, sesionID, visitorBizID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
-	// HandlerEvent(data []byte) (finalReply *event.ReplyEvent, err error)
 }
