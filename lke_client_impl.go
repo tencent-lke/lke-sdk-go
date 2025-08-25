@@ -462,6 +462,7 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		Logger:       c.logger,
 		EventHandler: c.eventHandler,
 		MaxToolTurns: c.maxToolTurns,
+		HttpClient:   c.httpClient,
 	}
 	c.runner = runner.NewRunnerImp(c.toolsMap,
 		c.agents,
