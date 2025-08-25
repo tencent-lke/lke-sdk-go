@@ -22,8 +22,7 @@ type LkeClient interface {
 	AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
 		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
-	AddAgentAsToolTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
-		selectedToolNames []string) (addTools []*tool.McpTool, err error)
+	AddAgentAsToolTools(agentName string)
 
 	// AddAgents 添加一批 agents
 	AddAgents(agents []model.Agent)
