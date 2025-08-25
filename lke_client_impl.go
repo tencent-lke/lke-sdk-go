@@ -176,6 +176,15 @@ func (c *lkeClient) AddAgentAsToolTools(agentName string, instructions string, m
 		BotAppKey:    c.botAppKey,
 		RequestID:    c.requestID,
 		VisitorBizID: c.visitorBizID,
+		Conf: runner.RunnerConf{
+			EnableSystemOpt: c.enableSystemOpt,
+			StartAgent:      agentName,
+			Logger:          c.logger,
+			EventHandler:    c.eventHandler,
+			Endpoint:        c.endpoint,
+			MaxToolTurns:    c.maxToolTurns,
+			HttpClient:      http.DefaultClient,
+		},
 	}
 	for _, t := range tools {
 		agentAsTool.Tools = append(agentAsTool.Tools, t)
