@@ -21,7 +21,6 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
-	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 type myLogger struct {
@@ -130,26 +129,26 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 func (e *MyEventHandler) AfterToolCallHook(callCtx eventhandler.ToolCallContext) {
 	inputbs, _ := json.Marshal(callCtx.Input)
 	outbs := []byte{}
-	if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
-		mcpRsp, okout := callCtx.Output.(*mcp.CallToolResult)
-		if okout {
-			outbs, _ = json.Marshal(mcpRsp)
-		}
-	} else {
-		outbs, _ = json.Marshal(callCtx.Output)
-	}
+	// if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
+	// 	mcpRsp, okout := callCtx.Output.(*mcp.CallToolResult)
+	// 	if okout {
+	// 		outbs, _ = json.Marshal(mcpRsp)
+	// 	}
+	// } else {
+	// 	outbs, _ = json.Marshal(callCtx.Output)
+	// }
 	prefix := ""
 	for range 20 {
 		prefix = prefix + " "
 	}
 	fmt.Printf("\n\n%s called tools %s, id: %s, input: %s, output: %s  \n\n",
-		prefix, callCtx.CallTool.GetName(), callCtx.CallId,
+		prefix, callCtx.CallToolName, callCtx.CallId,
 		string(inputbs), string(outbs))
 }
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, "111", &MyEventHandler{})
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
@@ -218,7 +217,7 @@ func main() {
 			StreamingThrottle: 5,
 			CustomVariables:   map[string]string{}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
 		}
-		_, err = client.Run(query, sessionID, visitorBizID, options)
+		_, err = client.Run(query, sessionID, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

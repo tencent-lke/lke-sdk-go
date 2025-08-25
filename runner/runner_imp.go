@@ -149,9 +149,9 @@ func (c *RunnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 					}
 				}
 				toolCallCtx := eventhandler.ToolCallContext{
-					CallTool: f,
-					CallId:   toolCall.ID,
-					Input:    input,
+					CallToolName: f.GetName(),
+					CallId:       toolCall.ID,
+					Input:        input,
 				}
 				c.runconf.EventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.RunWithTimeout(ctx, f, input)

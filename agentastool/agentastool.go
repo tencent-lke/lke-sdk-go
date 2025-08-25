@@ -1,4 +1,4 @@
-package tool
+package agentastool
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type AgentAsTool struct {
 	BotAppKey    string
 	RequestID    string
 	VisitorBizID string
-	Conf         runner.RunnerConfig
+	Conf         runner.RunnerConf
 }
 
 // GetName returns the name of the tool
@@ -74,8 +74,8 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 
 // ResultToString ...
 func (m *AgentAsTool) ResultToString(output interface{}) string {
-	str, _ := InterfaceToString(output)
-	return str
+	// str, _ := InterfaceToString(output)
+	return ""
 }
 
 // GetTimeout 获取超时时间

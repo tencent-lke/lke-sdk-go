@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/openai/openai-go"
+	"github.com/tencent-lke/lke-sdk-go/agentastool"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
@@ -171,7 +172,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 
 func (c *lkeClient) AddAgentAsToolTools(agentName string) {
 	tools := c.toolsMap[agentName]
-	agentAsTool := &tool.AgentAsTool{
+	agentAsTool := &agentastool.AgentAsTool{
 		Name:         agentName,
 		Description:  fmt.Sprintf("Agent %s as a tool", agentName),
 		AgentName:    agentName,
