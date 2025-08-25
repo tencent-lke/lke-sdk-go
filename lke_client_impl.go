@@ -164,12 +164,14 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AddAgentAsToolTools(agentName string) {
+func (c *lkeClient) AddAgentAsToolTools(agentName string, instructions string, modelname string) {
 	tools := c.toolsMap[agentName]
 	agentAsTool := &agentastool.AgentAsTool{
 		Name:         agentName,
 		Description:  fmt.Sprintf("Agent %s as a tool", agentName),
 		AgentName:    agentName,
+		Instructions: instructions,
+		ModelName:    modelname,
 		Timeout:      c.toolRunTimeout,
 		BotAppKey:    c.botAppKey,
 		RequestID:    c.requestID,

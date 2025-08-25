@@ -15,6 +15,8 @@ import (
 type AgentAsTool struct {
 	Name         string        // Tool名称
 	Description  string        // Tool描述
+	Instructions string        // Tool推广信息
+	ModelName    string        // Tool模型信息
 	AgentName    string        // Agent名称
 	Timeout      time.Duration // 超时配置
 	InputSchema  string        // 输入参数schema
@@ -55,7 +57,14 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	if !ok {
 		return nil, fmt.Errorf("invalid query parameter")
 	}
-	agents := []model.Agent{}
+	m1, _ := model.NewModelWithParam(model.ModelName(m.ModelName), 0, 1.0)
+	agents := []model.Agent{
+		{
+			Name:         m.AgentName,
+			Instructions: m.Instructions,
+			Model:        m1,
+		},
+	}
 	toolsMap := map[string][]tool.Tool{}
 	handoffs := []model.Handoff{}
 	// toolsMap := map[string][]tool.Tool{}
