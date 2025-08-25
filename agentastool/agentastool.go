@@ -58,6 +58,13 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	agents := []model.Agent{}
 	toolsMap := map[string][]tool.Tool{}
 	handoffs := []model.Handoff{}
+	// toolsMap := map[string][]tool.Tool{}
+	// for _, tool := range m.Tools {
+	// 	toolFuncs = append(toolFuncs, tool)
+	// 	toolsMap[m.AgentName] = toolFuncs
+	// }
+	toolsMap[m.AgentName] = m.Tools
+	// handoffs := []model.Handoff{}
 	runner := runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
 	options := &model.Options{StreamingThrottle: 20,
 		CustomVariables: map[string]string{
@@ -69,13 +76,13 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	if err != nil {
 		return nil, err
 	}
-	return result, nil
+	return m.ResultToString(result), nil
 }
 
 // ResultToString ...
 func (m *AgentAsTool) ResultToString(output interface{}) string {
-	// str, _ := InterfaceToString(output)
-	return ""
+	str, _ := tool.InterfaceToString(output)
+	return str
 }
 
 // GetTimeout 获取超时时间
