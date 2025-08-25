@@ -44,6 +44,7 @@ type lkeClient struct {
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
+	runner          runner.Runner
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -462,12 +463,12 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		EventHandler: c.eventHandler,
 		MaxToolTurns: c.maxToolTurns,
 	}
-	runner := runner.NewRunnerImp(c.toolsMap,
+	c.runner = runner.NewRunnerImp(c.toolsMap,
 		c.agents,
 		c.handoffs,
 		runconf,
 	)
-	runner.RunWithContext(ctx, query, sesionID, visitorBizID, options)
+	return c.runner.RunWithContext(ctx, query, sesionID, visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
@@ -497,7 +498,7 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 	// 		})
 	// 	}
 	// }
-	return nil, fmt.Errorf("reached maximum tool call turns")
+	// return nil, fmt.Errorf("reached maximum tool call turns")
 }
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
