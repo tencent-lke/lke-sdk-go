@@ -15,6 +15,6 @@ type Runner interface {
 	RunTools(ctx context.Context, req *model.ChatRequest,
 		reply *event.ReplyEvent, output *[]string)
 	RunWithContext(ctx context.Context,
-		query, sesionID, visitorBizID string,
+		query, requestID, sessionID, visitorBizID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 }

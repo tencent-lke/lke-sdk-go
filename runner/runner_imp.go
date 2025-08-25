@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/model"
@@ -174,7 +173,7 @@ func (c *RunnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 	wg.Wait()
 }
 
-func (c *RunnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey string,
+func (c *RunnerImp) buildReq(query, requestID, sessionID, visitorBizID string, botAppKey string,
 	options *model.Options) *model.ChatRequest {
 	req := &model.ChatRequest{
 		Content:      query,
@@ -186,7 +185,8 @@ func (c *RunnerImp) buildReq(query, sessionID, visitorBizID string, botAppKey st
 		req.Options = *options
 	}
 	// 一次端云交互的过程使用一个 requestId
-	req.Options.RequestID = uuid.New().String()
+	// req.Options.RequestID = uuid.New().String()
+	req.Options.RequestID = requestID
 	// 构建 agent 参数
 	req.AgentConfig.Agents = c.agents
 	// 构建 handoff 参数
@@ -245,10 +245,10 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 }
 
 func (c *RunnerImp) RunWithContext(ctx context.Context,
-	query, sesionID, visitorBizID string,
+	query, requestID, sessionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	var botAppKey string
-	req := c.buildReq(query, sesionID, visitorBizID, botAppKey, options)
+	req := c.buildReq(query, requestID, sessionID, visitorBizID, botAppKey, options)
 	for i := 0; i <= int(c.runconf.MaxToolTurns); i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {

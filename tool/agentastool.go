@@ -9,12 +9,15 @@ import (
 
 // AgentAsTool ...
 type AgentAsTool struct {
-	Name        string        // Tool名称
-	Description string        // Tool描述
-	AgentName   string        // Agent名称
-	Timeout     time.Duration // 超时配置
-	InputSchema string        // 输入参数schema
-	Tools       []tool.Tool   // agent需要调用的tools
+	Name         string        // Tool名称
+	Description  string        // Tool描述
+	AgentName    string        // Agent名称
+	Timeout      time.Duration // 超时配置
+	InputSchema  string        // 输入参数schema
+	Tools        []tool.Tool   // agent需要调用的tools
+	BotAppKey    string
+	RequestID    string
+	VisitorBizID string
 }
 
 // GetName returns the name of the tool
@@ -32,12 +35,12 @@ func (m *AgentAsTool) GetParametersSchema() map[string]interface{} {
 	return map[string]interface{}{
 		"type": "object",
 		"properties": map[string]interface{}{
-			"request": map[string]interface{}{
+			"query": map[string]interface{}{
 				"type":        "string",
 				"description": "The request to send to the agent",
 			},
 		},
-		"required": []string{"request"},
+		"required": []string{"query"},
 	}
 }
 

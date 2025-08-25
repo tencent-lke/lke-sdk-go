@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
@@ -26,7 +27,6 @@ type LkeClient interface {
 
 	// AddAgents 添加一批 agents
 	AddAgents(agents []model.Agent)
-
 	// AddHandoffs 添加 handoffs
 	// 其中 sourceAgentName, targetAgentNames 可以是应用对应的云上 agent，也可以是本地创建的 agent
 	AddHandoffs(sourceAgentName string, targetAgentNames []string)
@@ -87,7 +87,8 @@ type LkeClient interface {
 // NewLkeClient creates a new LKE client with the provided parameters,
 // botAppKey 知识引擎应用 id,
 // eventHandler 自定义事件处理
-func NewLkeClient(botAppKey string, eventHandler eventhandler.EventHandler) LkeClient {
+// visitorBizID 访客唯一标识
+func NewLkeClient(botAppKey string, userID string, eventHandler eventhandler.EventHandler) LkeClient {
 	handler := eventHandler
 	if handler == nil {
 		handler = &eventhandler.DefaultEventHandler{}
@@ -100,5 +101,7 @@ func NewLkeClient(botAppKey string, eventHandler eventhandler.EventHandler) LkeC
 		mock:         false,
 		httpClient:   http.DefaultClient,
 		maxToolTurns: 10,
+		requestID:    uuid.New().String(),
+		visitorBizID: userID,
 	}
 }

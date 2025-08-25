@@ -45,6 +45,8 @@ type lkeClient struct {
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
 	runner          runner.Runner
+	requestID       string
+	visitorBizID    string
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -171,10 +173,13 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 func (c *lkeClient) AddAgentAsToolTools(agentName string) {
 	tools := c.toolsMap[agentName]
 	agentAsTool := &tool.AgentAsTool{
-		Name:        agentName,
-		Description: fmt.Sprintf("Agent %s as a tool", agentName),
-		AgentName:   agentName,
-		Timeout:     c.toolRunTimeout,
+		Name:         agentName,
+		Description:  fmt.Sprintf("Agent %s as a tool", agentName),
+		AgentName:    agentName,
+		Timeout:      c.toolRunTimeout,
+		BotAppKey:    c.botAppKey,
+		RequestID:    c.requestID,
+		VisitorBizID: c.visitorBizID,
 	}
 	for _, t := range tools {
 		agentAsTool.Tools = append(agentAsTool.Tools, t)
@@ -467,7 +472,7 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 // RunWithContext 执行 agent with context，query 用户的输入
 // sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
 func (c *lkeClient) RunWithContext(ctx context.Context,
-	query, sesionID, visitorBizID string,
+	query, sessionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
 		return c.mockRun()
@@ -483,7 +488,7 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		c.handoffs,
 		runconf,
 	)
-	return c.runner.RunWithContext(ctx, query, sesionID, visitorBizID, options)
+	return c.runner.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
