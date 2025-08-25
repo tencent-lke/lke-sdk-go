@@ -33,12 +33,12 @@ type LkeClient interface {
 
 	// Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，visitorBizID 用户的唯一标识
 	// options 可选参数，可以为空。finalReply 最终的回复。
-	Run(query, sesionID, visitorBizID string,
+	Run(query, sesionID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// RunWithContext 执行 agent with context，query 用户的输入
 	// sesionID 对话唯一标识，options 可选参数，可以为空
-	RunWithContext(ctx context.Context, query, sesionID, visitorBizID string,
+	RunWithContext(ctx context.Context, query, sesionID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// 关闭所有 client 上的任务

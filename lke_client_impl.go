@@ -44,7 +44,6 @@ type lkeClient struct {
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
-	runner          runner.Runner
 	requestID       string
 	visitorBizID    string
 }
@@ -445,9 +444,9 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 					}
 				}
 				toolCallCtx := eventhandler.ToolCallContext{
-					CallTool: f,
-					CallId:   toolCall.ID,
-					Input:    input,
+					CallToolName: f.GetName(),
+					CallId:       toolCall.ID,
+					Input:        input,
 				}
 				c.eventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.runWithTimeout(ctx, f, input)
@@ -472,7 +471,7 @@ func (c *lkeClient) runTools(ctx context.Context, req *model.ChatRequest,
 // RunWithContext 执行 agent with context，query 用户的输入
 // sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
 func (c *lkeClient) RunWithContext(ctx context.Context,
-	query, sessionID, visitorBizID string,
+	query, sessionID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
 		return c.mockRun()
@@ -483,12 +482,12 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		MaxToolTurns: c.maxToolTurns,
 		HttpClient:   c.httpClient,
 	}
-	c.runner = runner.NewRunnerImp(c.toolsMap,
+	runner := runner.NewRunnerImp(c.toolsMap,
 		c.agents,
 		c.handoffs,
 		runconf,
 	)
-	return c.runner.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
+	return runner.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
@@ -523,9 +522,9 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
 // visitorBizID 用户的唯一标识
-func (c *lkeClient) Run(query, sesionID, visitorBizID string,
+func (c *lkeClient) Run(query, sesionID string,
 	options *model.Options) (*event.ReplyEvent, error) {
-	return c.RunWithContext(context.Background(), query, sesionID, visitorBizID, options)
+	return c.RunWithContext(context.Background(), query, sesionID, options)
 }
 
 func (c *lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {

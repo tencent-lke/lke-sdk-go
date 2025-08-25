@@ -2,8 +2,12 @@ package tool
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/tencent-lke/lke-sdk-go/model"
+	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
@@ -18,6 +22,7 @@ type AgentAsTool struct {
 	BotAppKey    string
 	RequestID    string
 	VisitorBizID string
+	Conf         runner.RunnerConfig
 }
 
 // GetName returns the name of the tool
@@ -46,7 +51,25 @@ func (m *AgentAsTool) GetParametersSchema() map[string]interface{} {
 
 // Execute executes the tool with the given parameter
 func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	return nil, nil
+	query, ok := params["query"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid query parameter")
+	}
+	agents := []model.Agent{}
+	toolsMap := map[string][]tool.Tool{}
+	handoffs := []model.Handoff{}
+	runner := runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
+	options := &model.Options{StreamingThrottle: 20,
+		CustomVariables: map[string]string{
+			"_user_guid":    m.VisitorBizID,
+			"_user_task_id": m.RequestID,
+		}}
+	sessionID := uuid.New().String()
+	result, err := runner.RunWithContext(ctx, query, m.RequestID, sessionID, m.VisitorBizID, options)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // ResultToString ...
