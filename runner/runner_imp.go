@@ -35,13 +35,6 @@ type RunnerImp struct {
 	agents   []model.Agent
 	handoffs []model.Handoff
 	runconf  RunnerConf
-	// enableSystemOpt bool
-	// startAgent      string
-	// logger          runlog.RunLogger
-	// eventHandler    eventhandler.EventHandler
-	// maxToolTurns    uint // 单次对话本地工具调用最大次数
-	// endpoint        string
-	// httpClient      *http.Client
 }
 
 func NewRunnerImp(toolsMap map[string][]tool.Tool, agents []model.Agent,
