@@ -250,6 +250,7 @@ func (c *RunnerImp) RunWithContext(ctx context.Context,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	// var botAppKey string
 	req := c.buildReq(query, requestID, sessionID, visitorBizID, c.runconf.BotAppKey, options)
+	c.runconf.Logger.Info(fmt.Sprintf("buildReq: %v", req))
 	for i := 0; i <= int(c.runconf.MaxToolTurns); i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {

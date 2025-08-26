@@ -482,18 +482,20 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 	if c.mock {
 		return c.mockRun()
 	}
+
 	runconf := runner.RunnerConf{
 		Logger:       c.logger,
 		EventHandler: c.eventHandler,
 		MaxToolTurns: c.maxToolTurns,
 		HttpClient:   c.httpClient,
 	}
-	runner := runner.NewRunnerImp(c.toolsMap,
+	c.logger.Info(fmt.Sprintf("RunWithContext: %v", query))
+	runnerInstance := runner.NewRunnerImp(c.toolsMap,
 		c.agents,
 		c.handoffs,
 		runconf,
 	)
-	return runner.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
+	return runnerInstance.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
