@@ -19,14 +19,15 @@ import (
 )
 
 type RunnerConf struct {
-	EnableSystemOpt bool
-	StartAgent      string
-	Logger          runlog.RunLogger
-	EventHandler    eventhandler.EventHandler
-	MaxToolTurns    uint // 单次对话本地工具调用最大次数
-	Endpoint        string
-	BotAppKey       string
-	HttpClient      *http.Client
+	EnableSystemOpt     bool
+	StartAgent          string
+	Logger              runlog.RunLogger
+	EventHandler        eventhandler.EventHandler
+	MaxToolTurns        uint // 单次对话本地工具调用最大次数
+	Endpoint            string
+	BotAppKey           string
+	HttpClient          *http.Client
+	LocalToolRunTimeout time.Duration
 }
 
 // RunnerImp ...
@@ -50,14 +51,14 @@ func NewRunnerImp(toolsMap map[string][]tool.Tool, agents []model.Agent,
 
 func (c *RunnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
-	// if c.toolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
-	// 	return f.Execute(ctx, input)
-	// }
+	if c.runconf.LocalToolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
+		return f.Execute(ctx, input)
+	}
 	var timeout time.Duration
 	if f.GetTimeout() != 0 {
 		timeout = f.GetTimeout()
 	} else {
-		timeout = 120
+		timeout = c.runconf.LocalToolRunTimeout
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
