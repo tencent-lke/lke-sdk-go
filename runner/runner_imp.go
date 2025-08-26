@@ -25,6 +25,7 @@ type RunnerConf struct {
 	EventHandler    eventhandler.EventHandler
 	MaxToolTurns    uint // 单次对话本地工具调用最大次数
 	Endpoint        string
+	BotAppKey       string
 	HttpClient      *http.Client
 }
 
@@ -247,8 +248,8 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 func (c *RunnerImp) RunWithContext(ctx context.Context,
 	query, requestID, sessionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
-	var botAppKey string
-	req := c.buildReq(query, requestID, sessionID, visitorBizID, botAppKey, options)
+	// var botAppKey string
+	req := c.buildReq(query, requestID, sessionID, visitorBizID, c.runconf.BotAppKey, options)
 	for i := 0; i <= int(c.runconf.MaxToolTurns); i++ {
 		reply, err := c.queryOnce(ctx, req)
 		if err != nil {

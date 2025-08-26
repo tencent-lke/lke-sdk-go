@@ -21,7 +21,6 @@ type AgentAsTool struct {
 	Timeout      time.Duration // 超时配置
 	InputSchema  string        // 输入参数schema
 	Tools        []tool.Tool   // agent需要调用的tools
-	BotAppKey    string
 	RequestID    string
 	VisitorBizID string
 	Conf         runner.RunnerConf
