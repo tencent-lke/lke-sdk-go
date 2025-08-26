@@ -176,14 +176,15 @@ func (c *lkeClient) AddAgentAsToolTools(agentName string, instructions string, m
 		RequestID:    c.requestID,
 		VisitorBizID: c.visitorBizID,
 		Conf: runner.RunnerConf{
-			EnableSystemOpt: c.enableSystemOpt,
-			StartAgent:      agentName,
-			Logger:          c.logger,
-			EventHandler:    c.eventHandler,
-			Endpoint:        c.endpoint,
-			MaxToolTurns:    c.maxToolTurns,
-			HttpClient:      http.DefaultClient,
-			BotAppKey:       c.botAppKey,
+			EnableSystemOpt:     c.enableSystemOpt,
+			StartAgent:          agentName,
+			Logger:              c.logger,
+			EventHandler:        c.eventHandler,
+			Endpoint:            c.endpoint,
+			MaxToolTurns:        c.maxToolTurns,
+			HttpClient:          http.DefaultClient,
+			BotAppKey:           c.botAppKey,
+			LocalToolRunTimeout: c.toolRunTimeout,
 		},
 	}
 	for _, t := range tools {
@@ -484,14 +485,15 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 	}
 
 	runconf := runner.RunnerConf{
-		EnableSystemOpt: c.enableSystemOpt,
-		StartAgent:      c.startAgent,
-		Logger:          c.logger,
-		EventHandler:    c.eventHandler,
-		MaxToolTurns:    c.maxToolTurns,
-		HttpClient:      c.httpClient,
-		Endpoint:        c.endpoint,
-		BotAppKey:       c.botAppKey,
+		EnableSystemOpt:     c.enableSystemOpt,
+		StartAgent:          c.startAgent,
+		Logger:              c.logger,
+		EventHandler:        c.eventHandler,
+		MaxToolTurns:        c.maxToolTurns,
+		HttpClient:          c.httpClient,
+		Endpoint:            c.endpoint,
+		BotAppKey:           c.botAppKey,
+		LocalToolRunTimeout: c.toolRunTimeout,
 	}
 	c.logger.Info(fmt.Sprintf("RunWithContext: %v", query))
 	runnerInstance := runner.NewRunnerImp(c.toolsMap,
