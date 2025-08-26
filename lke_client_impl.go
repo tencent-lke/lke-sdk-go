@@ -484,10 +484,14 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 	}
 
 	runconf := runner.RunnerConf{
-		Logger:       c.logger,
-		EventHandler: c.eventHandler,
-		MaxToolTurns: c.maxToolTurns,
-		HttpClient:   c.httpClient,
+		EnableSystemOpt: c.enableSystemOpt,
+		StartAgent:      c.startAgent,
+		Logger:          c.logger,
+		EventHandler:    c.eventHandler,
+		MaxToolTurns:    c.maxToolTurns,
+		HttpClient:      c.httpClient,
+		Endpoint:        c.endpoint,
+		BotAppKey:       c.botAppKey,
 	}
 	c.logger.Info(fmt.Sprintf("RunWithContext: %v", query))
 	runnerInstance := runner.NewRunnerImp(c.toolsMap,
