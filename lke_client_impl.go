@@ -179,7 +179,7 @@ func (c *lkeClient) AgentAsTool(agentName string) error {
 	tools := c.toolsMap[agentName]
 	agentAsTool := &agentastool.AgentAsTool{
 		Name:         agentName,
-		Description:  fmt.Sprintf("Agent %s as a tool", agentName),
+		Description:  agent.Instructions,
 		Agent:        agent,
 		Timeout:      c.toolRunTimeout,
 		RequestID:    c.requestID,
