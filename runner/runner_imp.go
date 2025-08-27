@@ -18,6 +18,7 @@ import (
 	"github.com/tmaxmax/go-sse"
 )
 
+// RunnerConf TODO
 type RunnerConf struct {
 	EnableSystemOpt     bool
 	StartAgent          string
@@ -30,7 +31,7 @@ type RunnerConf struct {
 	LocalToolRunTimeout time.Duration
 }
 
-// RunnerImp ...
+// RunnerImp TODO
 type RunnerImp struct {
 	toolsMap map[string][]tool.Tool // agentName -> tool lists  的映射
 	agents   []model.Agent
@@ -38,6 +39,7 @@ type RunnerImp struct {
 	runconf  RunnerConf
 }
 
+// NewRunnerImp TODO
 func NewRunnerImp(toolsMap map[string][]tool.Tool, agents []model.Agent,
 	handoffs []model.Handoff, conf RunnerConf) *RunnerImp {
 	runner := &RunnerImp{
@@ -49,6 +51,7 @@ func NewRunnerImp(toolsMap map[string][]tool.Tool, agents []model.Agent,
 	return runner
 }
 
+// RunWithTimeout TODO
 func (c *RunnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 	input map[string]interface{}) (output interface{}, err error) {
 	if c.runconf.LocalToolRunTimeout.Seconds() == 0 && f.GetTimeout() == 0 {
@@ -93,6 +96,7 @@ func (c *RunnerImp) RunWithTimeout(ctx context.Context, f tool.Tool,
 	}
 }
 
+// RunTools TODO
 func (c *RunnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 	reply *event.ReplyEvent, output *[]string) {
 	if reply == nil {
@@ -205,6 +209,7 @@ func (c *RunnerImp) buildReq(query, requestID, sessionID, visitorBizID string, b
 	req.AgentConfig.StartAgentName = c.runconf.StartAgent
 	// 构建工具参数
 	for agentName, toolFuncMap := range c.toolsMap {
+		fmt.Printf("agentName: %s, toolFuncMap: %v\n", agentName, toolFuncMap)
 		if len(toolFuncMap) > 0 {
 			agentTool := model.AgentTool{
 				AgentName: agentName,
@@ -215,6 +220,8 @@ func (c *RunnerImp) buildReq(query, requestID, sessionID, visitorBizID string, b
 			req.AgentConfig.AgentTools = append(req.AgentConfig.AgentTools, agentTool)
 		}
 	}
+	// bs, _ := json.Marshal(req)
+	// fmt.Printf("req: %v\n", string(bs))
 	return req
 }
 
@@ -254,6 +261,7 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	return finalReply, finalErr
 }
 
+// RunWithContext TODO
 func (c *RunnerImp) RunWithContext(ctx context.Context,
 	query, requestID, sessionID, visitorBizID string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {

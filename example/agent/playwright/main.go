@@ -27,14 +27,14 @@ type myLogger struct {
 	F *os.File
 }
 
-// Info ...
+// Info TODO
 func (m myLogger) Info(msg string) {
 	if m.F != nil {
 		m.F.WriteString("INFO: " + msg + "\n")
 	}
 }
 
-// Error ...
+// Error TODO
 func (m myLogger) Error(msg string) {
 	if m.F != nil {
 		m.F.WriteString("ERROR: " + msg + "\n")
@@ -94,6 +94,7 @@ func (e *MyEventHandler) OnReply(reply *event.ReplyEvent) {
 	}
 }
 
+// OnThought TODO
 // OnReply 自定义思考处理事件,使用增量输出思考过程
 func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 	if e.replying {
@@ -154,10 +155,10 @@ func main() {
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
 	defer c.Close()
 	// 定义新闻搜索 agent
-	downloadAgent := model.NewAgent(
-		"下载助手agent",
-		"根据用户输入需求，寻找到合适的下载链接。",
-		"一个万能的下载助手",
+	taskAgent := model.NewAgent(
+		"任务分配助手agent",
+		"taskAgent",
+		"一个万能的任务分配助手",
 		model.ModelFunctionCallPro,
 		nil, nil,
 	)
@@ -168,17 +169,17 @@ func main() {
 		model.ModelFunctionCallPro,
 		nil, nil,
 	)
-	_, f1, _, _ := runtime.Caller(0)
-	serverPath := path.Join(path.Dir(f1), "server.py")
-	client.AddAgents([]model.Agent{downloadAgent, browserAgent})
-	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
-	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
+	// _, f1, _, _ := runtime.Caller(0)
+	// serverPath := path.Join(path.Dir(f1), "server.py")
+	client.AddAgents([]model.Agent{taskAgent, browserAgent})
+	// client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
+	// client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
 	var initrequest mcp.InitializeRequest
 	mcpserversse := mcpserversse.NewMcpServerSse(
-		serverPath,
+		"http://localhost:8718/sse",
 		[]transport.ClientOption{},
 		initrequest,
-		30,
+		0,
 	)
 	// addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
 	// 	Name:    "text",
@@ -193,9 +194,10 @@ func main() {
 		fmt.Printf("toolname: %s\ndescribe: %s\nschema: %v\n\n",
 			tools.GetName(), tools.GetDescription(), string(bs))
 	}
+	client.AgentAsTool(taskAgent.Name, browserAgent.Name)
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
-	client.SetStartAgent(browserAgent.Name)
+	client.SetStartAgent(taskAgent.Name)
 	client.SetEnableSystemOpt(true)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {

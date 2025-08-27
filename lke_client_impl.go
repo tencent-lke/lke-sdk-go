@@ -19,6 +19,7 @@ import (
 )
 
 const (
+	// DefaultEndpoint TODO
 	DefaultEndpoint = "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
 )
 
@@ -73,7 +74,7 @@ func (c *lkeClient) SetMock(mock bool) {
 	c.mock = mock
 }
 
-// DisableSystemOpt 配置 agent 运行时的系统优化开关
+// SetEnableSystemOpt 配置 agent 运行时的系统优化开关
 func (c *lkeClient) SetEnableSystemOpt(enable bool) {
 	c.enableSystemOpt = enable
 }
@@ -90,11 +91,13 @@ func (c *lkeClient) SetHttpClient(cli *http.Client) {
 	}
 }
 
+// SetMaxToolTurns TODO
 // SetHttpClient 设置单轮对话，本地工具调用的最大轮数，不设置默认为 10
 func (c *lkeClient) SetMaxToolTurns(maxToolTurns uint) {
 	c.maxToolTurns = maxToolTurns
 }
 
+// SetToolRunTimeout TODO
 // SetHttpClient 设置本地工具调用的超时时间
 func (c *lkeClient) SetToolRunTimeout(toolRunTimeout time.Duration) {
 	c.toolRunTimeout = toolRunTimeout
@@ -164,21 +167,22 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AgentAsTool(agentName string) error {
+func (c *lkeClient) AgentAsTool(agentName, agentToolName string) error {
 	var agent model.Agent
 	ishaveAgent := false
 	for _, a := range c.agents {
-		if a.Name == agentName {
+		if a.Name == agentToolName {
+			ishaveAgent = true
 			agent = a
 			break
 		}
 	}
 	if !ishaveAgent {
-		return fmt.Errorf("agent %s not found", agentName)
+		return fmt.Errorf("agent %s not found", agentToolName)
 	}
-	tools := c.toolsMap[agentName]
+	tools := c.toolsMap[agentToolName]
 	agentAsTool := &agentastool.AgentAsTool{
-		Name:         agentName,
+		Name:         agentToolName,
 		Description:  agent.Instructions,
 		Agent:        agent,
 		Timeout:      c.toolRunTimeout,
@@ -186,7 +190,7 @@ func (c *lkeClient) AgentAsTool(agentName string) error {
 		VisitorBizID: c.visitorBizID,
 		Conf: runner.RunnerConf{
 			EnableSystemOpt:     c.enableSystemOpt,
-			StartAgent:          agentName,
+			StartAgent:          agentToolName,
 			Logger:              c.logger,
 			EventHandler:        c.eventHandler,
 			Endpoint:            c.endpoint,
@@ -196,9 +200,9 @@ func (c *lkeClient) AgentAsTool(agentName string) error {
 			LocalToolRunTimeout: c.toolRunTimeout,
 		},
 	}
-	for _, t := range tools {
-		agentAsTool.Tools = append(agentAsTool.Tools, t)
-	}
+
+	agentAsTool.Tools = append(agentAsTool.Tools, tools...)
+
 	c.toolsMap[agentName] = append(c.toolsMap[agentName], agentAsTool)
 	return nil
 }

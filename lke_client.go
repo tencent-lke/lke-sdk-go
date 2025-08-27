@@ -23,7 +23,7 @@ type LkeClient interface {
 	AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
 		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
-	AgentAsTool(agentName string) error
+	AgentAsTool(agentName, agentToolName string) error
 
 	// AddAgents 添加一批 agents
 	AddAgents(agents []model.Agent)
@@ -41,7 +41,7 @@ type LkeClient interface {
 	RunWithContext(ctx context.Context, query, sesionID string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
-	// 关闭所有 client 上的任务
+	// Close 关闭所有 client 上的任务
 	Close()
 
 	// Open 已经 Close 的 client
@@ -74,9 +74,11 @@ type LkeClient interface {
 	// SetHttpClient 设置自定义 http client
 	SetHttpClient(cli *http.Client)
 
+	// SetMaxToolTurns TODO
 	// SetHttpClient 设置单轮对话，本地工具调用的最大轮数，不设置默认为 10
 	SetMaxToolTurns(maxToolTurns uint)
 
+	// SetToolRunTimeout TODO
 	// SetHttpClient 设置本地工具调用的超时时间
 	SetToolRunTimeout(toolRunTimeout time.Duration)
 
