@@ -62,15 +62,6 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	if !ok {
 		return nil, fmt.Errorf("invalid query parameter")
 	}
-	// m1, _ := model.NewModelWithParam(model.ModelName(m.ModelName), 0, 1.0)
-	// agents := []model.Agent{
-	// 	{
-	// 		Name:         m.AgentName,
-	// 		Instructions: m.Instructions,
-	// 		Model:        m1,
-	// 	},
-	// }
-	// toolsMap[m.AgentName] = m.Tools
 	agents := []model.Agent{m.Agent}
 	toolsMap := map[string][]tool.Tool{}
 	toolsMap[m.Agent.Name] = m.Tools
