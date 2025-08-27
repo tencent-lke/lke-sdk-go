@@ -13,14 +13,16 @@ import (
 
 // AgentAsTool ...
 type AgentAsTool struct {
-	Name         string        // Tool名称
-	Description  string        // Tool描述
-	Instructions string        // Tool推广信息
-	ModelName    string        // Tool模型信息
-	AgentName    string        // Agent名称
-	Timeout      time.Duration // 超时配置
-	InputSchema  string        // 输入参数schema
-	Tools        []tool.Tool   // agent需要调用的tools
+	Name        string // Tool名称
+	Description string // Tool描述
+	// Instructions string        // Tool推广信息
+	// ModelName    string        // Tool模型信息
+	// AgentName    string        // Agent名称
+	Timeout time.Duration // 超时配置
+	Agent   model.Agent
+	// OutputSchema map[string]interface{} `json:"outputSchema"`
+	// InputSchema  map[string]interface{} `json:"inputSchema"`
+	Tools        []tool.Tool // agent需要调用的tools
 	RequestID    string
 	VisitorBizID string
 	Conf         runner.RunnerConf
@@ -38,15 +40,19 @@ func (m *AgentAsTool) GetDescription() string {
 
 // GetParametersSchema returns the JSON schema for the tool parameters
 func (m *AgentAsTool) GetParametersSchema() map[string]interface{} {
-	return map[string]interface{}{
-		"type": "object",
-		"properties": map[string]interface{}{
-			"query": map[string]interface{}{
-				"type":        "string",
-				"description": "The request to send to the agent",
+	if m.Agent.InputSchema != nil {
+		return m.Agent.InputSchema
+	} else {
+		return map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"query": map[string]interface{}{
+					"type":        "string",
+					"description": "The request to send to the agent",
+				},
 			},
-		},
-		"required": []string{"query"},
+			"required": []string{"query"},
+		}
 	}
 }
 
@@ -56,23 +62,19 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	if !ok {
 		return nil, fmt.Errorf("invalid query parameter")
 	}
-	m1, _ := model.NewModelWithParam(model.ModelName(m.ModelName), 0, 1.0)
-	agents := []model.Agent{
-		{
-			Name:         m.AgentName,
-			Instructions: m.Instructions,
-			Model:        m1,
-		},
-	}
-	toolsMap := map[string][]tool.Tool{}
-	handoffs := []model.Handoff{}
-	// toolsMap := map[string][]tool.Tool{}
-	// for _, tool := range m.Tools {
-	// 	toolFuncs = append(toolFuncs, tool)
-	// 	toolsMap[m.AgentName] = toolFuncs
+	// m1, _ := model.NewModelWithParam(model.ModelName(m.ModelName), 0, 1.0)
+	// agents := []model.Agent{
+	// 	{
+	// 		Name:         m.AgentName,
+	// 		Instructions: m.Instructions,
+	// 		Model:        m1,
+	// 	},
 	// }
-	toolsMap[m.AgentName] = m.Tools
-	// handoffs := []model.Handoff{}
+	// toolsMap[m.AgentName] = m.Tools
+	agents := []model.Agent{m.Agent}
+	toolsMap := map[string][]tool.Tool{}
+	toolsMap[m.Agent.Name] = m.Tools
+	handoffs := []model.Handoff{}
 	runner := runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
 	options := &model.Options{StreamingThrottle: 20,
 		CustomVariables: map[string]string{

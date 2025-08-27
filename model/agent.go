@@ -11,10 +11,12 @@ type AgentConfig struct {
 
 // Agent agent 定义
 type Agent struct {
-	Name               string `json:"Name"`
-	Instructions       string `json:"Instructions"`
-	HandoffDescription string `json:"HandoffDescription"`
-	Model              model  `json:"Model"`
+	Name               string                 `json:"Name"`
+	Instructions       string                 `json:"Instructions"`
+	HandoffDescription string                 `json:"HandoffDescription"`
+	Model              model                  `json:"Model"`
+	OutputSchema       map[string]interface{} `json:"outputSchema"`
+	InputSchema        map[string]interface{} `json:"inputSchema"`
 }
 
 // NewAgent 创建一个新的 Agent 实例
@@ -23,11 +25,14 @@ type Agent struct {
 // description Agent任务目标的一句话简单介绍，转交时用于了解何时应当转交的描述信息。
 // instructions与 description的区别是，description 是给到其他调用Agent的调用方了解何时需要调用Agent的简单描述，而instructions是给到思考模型理解并执行的Agent的详细工作逻辑。
 // m 该 agent 需要用到的模型
-func NewAgent(name, instruction, description string, m model) Agent {
+func NewAgent(name, instruction, description string, m model,
+	outputSchema, inputSchema map[string]interface{}) Agent {
 	return Agent{
 		Name:               name,
 		Instructions:       instruction,
 		HandoffDescription: description,
 		Model:              m,
+		InputSchema:        inputSchema,
+		OutputSchema:       outputSchema,
 	}
 }

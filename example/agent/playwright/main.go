@@ -159,12 +159,14 @@ func main() {
 		"根据用户输入需求，寻找到合适的下载链接。",
 		"一个万能的下载助手",
 		model.ModelFunctionCallPro,
+		nil, nil,
 	)
 	browserAgent := model.NewAgent(
 		"浏览器控制 agent",
 		"涉及到实际操作浏览器",
 		"涉及到实际浏览器控制和操作的需求都可以交给我。",
 		model.ModelFunctionCallPro,
+		nil, nil,
 	)
 	_, f1, _, _ := runtime.Caller(0)
 	serverPath := path.Join(path.Dir(f1), "server.py")
