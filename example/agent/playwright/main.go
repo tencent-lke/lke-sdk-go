@@ -194,7 +194,7 @@ func main() {
 		fmt.Printf("toolname: %s\ndescribe: %s\nschema: %v\n\n",
 			tools.GetName(), tools.GetDescription(), string(bs))
 	}
-	client.AgentAsTool(taskAgent.Name, browserAgent.Name, "")
+	client.AddAgentAsTool(taskAgent.Name, browserAgent.Name, browserAgent.Name, "")
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
 	client.SetStartAgent(taskAgent.Name)

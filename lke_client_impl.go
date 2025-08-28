@@ -167,22 +167,22 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AgentAsTool(agentName string, agentToolName string, agentToolDescription string) error {
+func (c *lkeClient) AgentAsTool(agentName string, agentastoolName string, toolName string, toolDescription string) error {
 	var agent model.Agent
 	ishaveAgent := false
 	for _, a := range c.agents {
-		if a.Name == agentName {
+		if a.Name == agentastoolName {
 			ishaveAgent = true
 			agent = a
 			break
 		}
 	}
 	if !ishaveAgent {
-		return fmt.Errorf("agent %s not found", agentToolName)
+		return fmt.Errorf("agent %s not found", agentastoolName)
 	}
-	tools := c.toolsMap[agentToolName]
+	tools := c.toolsMap[agentastoolName]
 	agentAsTool := &agentastool.AgentAsTool{
-		Name:         agentToolName,
+		Name:         toolName,
 		Description:  agent.Instructions,
 		Agent:        agent,
 		Timeout:      c.toolRunTimeout,
@@ -190,7 +190,7 @@ func (c *lkeClient) AgentAsTool(agentName string, agentToolName string, agentToo
 		VisitorBizID: c.visitorBizID,
 		Conf: runner.RunnerConf{
 			EnableSystemOpt:     c.enableSystemOpt,
-			StartAgent:          agentToolName,
+			StartAgent:          agentastoolName,
 			Logger:              c.logger,
 			EventHandler:        c.eventHandler,
 			Endpoint:            c.endpoint,
@@ -200,12 +200,23 @@ func (c *lkeClient) AgentAsTool(agentName string, agentToolName string, agentToo
 			LocalToolRunTimeout: c.toolRunTimeout,
 		},
 	}
-	if agentToolDescription != "" {
-		agentAsTool.Description = agentToolDescription
+	if toolDescription != "" {
+		agentAsTool.Description = toolDescription
 	}
 	agentAsTool.Tools = append(agentAsTool.Tools, tools...)
 
+	_, ok := c.toolsMap[agentName]
+	if !ok {
+		toolFuncs := []tool.Tool{}
+		c.toolsMap[agentName] = toolFuncs
+	}
 	c.toolsMap[agentName] = append(c.toolsMap[agentName], agentAsTool)
+	// for _, tool := range tools {
+	// 	if tool != nil {
+	// 		toolFuncs = append(toolFuncs, tool)
+	// 		c.toolsMap[agentName] = toolFuncs
+	// 	}
+	// }
 	return nil
 }
 
