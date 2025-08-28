@@ -167,7 +167,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AgentAsTool(agentName, agentToolName string) error {
+func (c *lkeClient) AgentAsTool(agentName, agentToolName, agentToolDescription string) error {
 	var agent model.Agent
 	ishaveAgent := false
 	for _, a := range c.agents {
@@ -200,7 +200,9 @@ func (c *lkeClient) AgentAsTool(agentName, agentToolName string) error {
 			LocalToolRunTimeout: c.toolRunTimeout,
 		},
 	}
-
+	if agentToolDescription != "" {
+		agentAsTool.Description = agentToolDescription
+	}
 	agentAsTool.Tools = append(agentAsTool.Tools, tools...)
 
 	c.toolsMap[agentName] = append(c.toolsMap[agentName], agentAsTool)
