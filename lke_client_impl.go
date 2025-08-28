@@ -167,11 +167,11 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AgentAsTool(agentName, agentToolName, agentToolDescription string) error {
+func (c *lkeClient) AgentAsTool(agentName string, agentToolName string, agentToolDescription string) error {
 	var agent model.Agent
 	ishaveAgent := false
 	for _, a := range c.agents {
-		if a.Name == agentToolName {
+		if a.Name == agentName {
 			ishaveAgent = true
 			agent = a
 			break
