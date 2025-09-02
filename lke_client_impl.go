@@ -41,6 +41,7 @@ type lkeClient struct {
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
 	closed          atomic.Bool
 	requestID       string
+	sessionID       string
 	visitorBizID    string
 }
 
@@ -187,6 +188,7 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string, too
 		Agent:        agent,
 		Timeout:      c.toolRunTimeout,
 		RequestID:    c.requestID,
+		SessionID:    c.sessionID,
 		VisitorBizID: c.visitorBizID,
 		Conf: runner.RunnerConf{
 			EnableSystemOpt:     c.enableSystemOpt,
@@ -508,12 +510,11 @@ func (c *lkeClient) AddHandoffs(sourceAgentName string, targetAgentNames []strin
 // RunWithContext 执行 agent with context，query 用户的输入
 // sesionID 对话唯一标识，options 可选参数，可以为空，visitorBizID 用户的唯一标识
 func (c *lkeClient) RunWithContext(ctx context.Context,
-	query, sessionID string,
+	query string,
 	options *model.Options) (finalReply *event.ReplyEvent, err error) {
 	if c.mock {
 		return c.mockRun()
 	}
-
 	runconf := runner.RunnerConf{
 		EnableSystemOpt:     c.enableSystemOpt,
 		StartAgent:          c.startAgent,
@@ -531,7 +532,7 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		c.handoffs,
 		runconf,
 	)
-	return runnerInstance.RunWithContext(ctx, query, c.requestID, sessionID, c.visitorBizID, options)
+	return runnerInstance.RunWithContext(ctx, query, c.requestID, c.sessionID, c.visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
@@ -566,9 +567,9 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 
 // Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，options 可选参数，可以为空
 // visitorBizID 用户的唯一标识
-func (c *lkeClient) Run(query, sesionID string,
+func (c *lkeClient) Run(query string,
 	options *model.Options) (*event.ReplyEvent, error) {
-	return c.RunWithContext(context.Background(), query, sesionID, options)
+	return c.RunWithContext(context.Background(), query, options)
 }
 
 func (c *lkeClient) mockRun() (finalReply *event.ReplyEvent, err error) {

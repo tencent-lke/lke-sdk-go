@@ -149,7 +149,7 @@ func (e *MyEventHandler) AfterToolCallHook(callCtx eventhandler.ToolCallContext)
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, "111", &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, "111", sessionID, &MyEventHandler{})
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
@@ -221,7 +221,7 @@ func main() {
 			StreamingThrottle: 5,
 			CustomVariables:   map[string]string{}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
 		}
-		_, err = client.Run(query, sessionID, options)
+		_, err = client.Run(query, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -25,6 +24,8 @@ type AgentAsTool struct {
 	Tools        []tool.Tool // agent需要调用的tools
 	RequestID    string
 	VisitorBizID string
+	SessionID    string
+	index        int64
 	Conf         runner.RunnerConf
 }
 
@@ -72,7 +73,8 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 			"_user_guid":    m.VisitorBizID,
 			"_user_task_id": m.RequestID,
 		}}
-	sessionID := uuid.New().String()
+	m.index = m.index + 1
+	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
 	result, err := runner.RunWithContext(ctx, query, m.RequestID, sessionID, m.VisitorBizID, options)
 	if err != nil {
 		return nil, err

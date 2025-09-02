@@ -33,12 +33,12 @@ type LkeClient interface {
 
 	// Run 执行 agent，query 用户的输入，sesionID 对话唯一标识，visitorBizID 用户的唯一标识
 	// options 可选参数，可以为空。finalReply 最终的回复。
-	Run(query, sesionID string,
+	Run(query string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// RunWithContext 执行 agent with context，query 用户的输入
 	// sesionID 对话唯一标识，options 可选参数，可以为空
-	RunWithContext(ctx context.Context, query, sesionID string,
+	RunWithContext(ctx context.Context, query string,
 		options *model.Options) (finalReply *event.ReplyEvent, err error)
 
 	// Close 关闭所有 client 上的任务
@@ -90,7 +90,7 @@ type LkeClient interface {
 // botAppKey 知识引擎应用 id,
 // eventHandler 自定义事件处理
 // visitorBizID 访客唯一标识
-func NewLkeClient(botAppKey string, userID string, eventHandler eventhandler.EventHandler) LkeClient {
+func NewLkeClient(botAppKey string, userID string, taskID string, eventHandler eventhandler.EventHandler) LkeClient {
 	handler := eventHandler
 	if handler == nil {
 		handler = &eventhandler.DefaultEventHandler{}
@@ -104,6 +104,7 @@ func NewLkeClient(botAppKey string, userID string, eventHandler eventhandler.Eve
 		httpClient:   http.DefaultClient,
 		maxToolTurns: 10,
 		requestID:    uuid.New().String(),
+		sessionID:    taskID,
 		visitorBizID: userID,
 	}
 }
