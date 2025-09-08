@@ -2,6 +2,7 @@ package agentastool
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -75,11 +76,36 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 		}}
 	m.index = m.index + 1
 	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
-	result, err := runner.RunWithContext(ctx, query, m.RequestID, sessionID, m.VisitorBizID, options)
+	instruction := query + "\n\n" + m.generateJSONInstructions()
+	result, err := runner.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
 	if err != nil {
 		return nil, err
 	}
 	return m.ResultToString(result), nil
+}
+
+// generateJSONInstructions generates JSON output instructions based on the output schema.
+func (m *AgentAsTool) generateJSONInstructions() string {
+	if m.Agent.OutputSchema == nil {
+		return ""
+	}
+	// Convert schema to a readable format for the instruction
+	schemaStr := m.formatSchemaForInstruction(m.Agent.OutputSchema)
+	return fmt.Sprintf("IMPORTANT: You must respond with valid JSON in the following format:\n%s\n\n"+
+		"Your response must be valid JSON that matches this schema exactly. "+
+		"Do not include ```json or ``` in the beginning or end of the response.", schemaStr)
+}
+
+// formatSchemaForInstruction formats the schema for inclusion in instructions.
+func (p *AgentAsTool) formatSchemaForInstruction(schema map[string]interface{}) string {
+	// For now, we'll create a simple JSON representation.
+	// In a more sophisticated implementation, we could parse the schema more intelligently.
+	jsonBytes, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		// Fallback to a simple string representation.
+		return fmt.Sprintf("%v", schema)
+	}
+	return string(jsonBytes)
 }
 
 // ResultToString ...
