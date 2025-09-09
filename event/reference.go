@@ -24,9 +24,9 @@ const EventReference = "reference"
 
 // ReferenceEvent 参考来源事件消息体
 type ReferenceEvent struct {
-	RecordID   string       `json:"record_id"`
-	References []Reference  `json:"references"`
-	EContent   EventContent `json:"eventcontent,omitempty"`
+	RecordID   string      `json:"record_id"`
+	References []Reference `json:"references"`
+	Extend     EventExtend `json:"extend,omitempty"`
 }
 
 // Name 事件名称

@@ -167,6 +167,9 @@ func (c *RunnerImp) RunTools(ctx context.Context, req *model.ChatRequest,
 					CallId:       toolCall.ID,
 					Input:        input,
 				}
+				toolCallCtx.Extend = make(map[string]string)
+				toolCallCtx.Extend["agentname"] = reply.InterruptInfo.CurrentAgent
+				// 调用工具前的钩子
 				c.runconf.EventHandler.BeforeToolCallHook(toolCallCtx)
 				toolout, err := c.RunWithTimeout(ctx, f, input)
 				toolCallCtx.Output = toolout
@@ -307,8 +310,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 			errEvent := event.ErrorEvent{}
 			json.Unmarshal(data, &errEvent)
 			err = fmt.Errorf("get error event: %s", string(data))
-			errEvent.EContent.Content = make(map[string]string)
-			errEvent.EContent.Content["agentname"] = c.runconf.StartAgent
+			errEvent.Extend.Extend = make(map[string]string)
+			errEvent.Extend.Extend["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnError(&errEvent)
 			return nil, err
 		}
@@ -316,8 +319,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			refer := event.ReferenceEvent{}
 			json.Unmarshal(ev.Payload, &refer)
-			refer.EContent.Content = make(map[string]string)
-			refer.EContent.Content["agentname"] = c.runconf.StartAgent
+			refer.Extend.Extend = make(map[string]string)
+			refer.Extend.Extend["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnReference(&refer)
 			return nil, nil
 		}
@@ -325,8 +328,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			thought := event.AgentThoughtEvent{}
 			json.Unmarshal(ev.Payload, &thought)
-			thought.EContent.Content = make(map[string]string)
-			thought.EContent.Content["agentname"] = c.runconf.StartAgent
+			thought.Extend.Extend = make(map[string]string)
+			thought.Extend.Extend["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnThought(&thought)
 			return nil, nil
 		}
@@ -334,8 +337,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			reply := event.ReplyEvent{}
 			json.Unmarshal(ev.Payload, &reply)
-			reply.EContent.Content = make(map[string]string)
-			reply.EContent.Content["agentname"] = c.runconf.StartAgent
+			reply.Extend.Extend = make(map[string]string)
+			reply.Extend.Extend["agentname"] = c.runconf.StartAgent
 			if reply.IsFinal {
 				finalReply = &reply
 			}
@@ -348,8 +351,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			tokenStat := event.TokenStatEvent{}
 			json.Unmarshal(ev.Payload, &tokenStat)
-			tokenStat.EContent.Content = make(map[string]string)
-			tokenStat.EContent.Content["agentname"] = c.runconf.StartAgent
+			tokenStat.Extend.Extend = make(map[string]string)
+			tokenStat.Extend.Extend["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnTokenStat(&tokenStat)
 			return finalReply, nil
 		}

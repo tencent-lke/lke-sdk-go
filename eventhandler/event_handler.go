@@ -13,6 +13,7 @@ type ToolCallContext struct {
 	// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
 	Output interface{}
 	Err    error
+	Extend map[string]string
 }
 
 // EventHandler 事件处理的接口，用户可以用默认的实现，也可以自定义

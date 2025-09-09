@@ -65,10 +65,10 @@ type TokenStatEvent struct {
 	// ProceduresDetail []Procedure `json:"procedures_detail"` // 过程列表详细, 支持多个相同过程
 	Procedures []Procedure `json:"procedures"` // 过程列表, 从详细中去重获得
 
-	StartTime         time.Time    `json:"-"` // 开始时间, 用于记录总耗时
-	EventSource       string       `json:"-"` // 本次 token 统计的 event 来源
-	FinanceSubBizType string       `json:"-"` // 计费子类型
-	EContent          EventContent `json:"eventcontent,omitempty"`
+	StartTime         time.Time   `json:"-"` // 开始时间, 用于记录总耗时
+	EventSource       string      `json:"-"` // 本次 token 统计的 event 来源
+	FinanceSubBizType string      `json:"-"` // 计费子类型
+	Extend            EventExtend `json:"extend,omitempty"`
 }
 
 // Procedure 执行过程
