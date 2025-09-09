@@ -58,6 +58,7 @@ type ReplyEvent struct {
 	Tags            []*ReplyTag      `json:"tags,omitempty"`          // 命中标签列表
 	CustomParams    []string         `json:"custom_params,omitempty"` // 自定义参数, 用户透传用户自定义参数，如果没有自定义参数 为[]
 	InterruptInfo   *InterruptInfo   `json:"interrupt_info"`          // 中断信息，意味着必须要端上配合 chat 才能继续执行
+	EContent        EventContent     `json:"eventcontent,omitempty"`
 }
 
 type InterruptInfo struct {

@@ -307,6 +307,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 			errEvent := event.ErrorEvent{}
 			json.Unmarshal(data, &errEvent)
 			err = fmt.Errorf("get error event: %s", string(data))
+			errEvent.EContent.Content = make(map[string]string)
+			errEvent.EContent.Content["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnError(&errEvent)
 			return nil, err
 		}
@@ -314,6 +316,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			refer := event.ReferenceEvent{}
 			json.Unmarshal(ev.Payload, &refer)
+			refer.EContent.Content = make(map[string]string)
+			refer.EContent.Content["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnReference(&refer)
 			return nil, nil
 		}
@@ -321,6 +325,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			thought := event.AgentThoughtEvent{}
 			json.Unmarshal(ev.Payload, &thought)
+			thought.EContent.Content = make(map[string]string)
+			thought.EContent.Content["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnThought(&thought)
 			return nil, nil
 		}
@@ -328,6 +334,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			reply := event.ReplyEvent{}
 			json.Unmarshal(ev.Payload, &reply)
+			reply.EContent.Content = make(map[string]string)
+			reply.EContent.Content["agentname"] = c.runconf.StartAgent
 			if reply.IsFinal {
 				finalReply = &reply
 			}
@@ -340,6 +348,8 @@ func (c *RunnerImp) handlerEvent(data []byte) (finalReply *event.ReplyEvent, err
 		{
 			tokenStat := event.TokenStatEvent{}
 			json.Unmarshal(ev.Payload, &tokenStat)
+			tokenStat.EContent.Content = make(map[string]string)
+			tokenStat.EContent.Content["agentname"] = c.runconf.StartAgent
 			c.runconf.EventHandler.OnTokenStat(&tokenStat)
 			return finalReply, nil
 		}
