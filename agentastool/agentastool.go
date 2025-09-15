@@ -69,13 +69,13 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	toolsMap[m.Agent.Name] = m.Tools
 	handoffs := []model.Handoff{}
 	runner := runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
+	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
 	options := &model.Options{StreamingThrottle: 20,
 		CustomVariables: map[string]string{
 			"_user_guid":    m.VisitorBizID,
-			"_user_task_id": m.RequestID,
+			"_user_task_id": m.SessionID,
 		}}
 	m.index = m.index + 1
-	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
 	instruction := query + "\n\n" + m.generateJSONInstructions()
 	result, err := runner.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
 	if err != nil {
