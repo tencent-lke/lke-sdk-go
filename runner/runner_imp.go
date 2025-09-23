@@ -239,7 +239,6 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	if err != nil {
 		return nil, fmt.Errorf("NewRequestWithContext error: %v", err)
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("X-Qbot-EnvSet", "toe-base")
 	res, err := c.runconf.HttpClient.Do(httpReq)
