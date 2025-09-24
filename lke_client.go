@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tencent-lke/lke-sdk-go/agentastool"
 	"github.com/tencent-lke/lke-sdk-go/event"
 	"github.com/tencent-lke/lke-sdk-go/eventhandler"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
@@ -23,7 +24,8 @@ type LkeClient interface {
 	AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse,
 		selectedToolNames []string) (addTools []*tool.McpTool, err error)
 
-	AddAgentAsTool(agentName string, agentastoolName string, toolName string, toolDescription string) error
+	AddAgentAsTool(agentName string, agentastoolName string,
+		toolName string, toolDescription string) (addtool *agentastool.AgentAsTool, err error)
 
 	// AddAgents 添加一批 agents
 	AddAgents(agents []model.Agent)
