@@ -288,6 +288,9 @@ func (c *lkeClient) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
+	if req.Options.EnvSet != "" {
+		httpReq.Header.Set("X-Qbot-EnvSet", req.Options.EnvSet)
+	}
 
 	res, err := c.httpClient.Do(httpReq)
 	if err != nil {
