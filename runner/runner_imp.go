@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/tencent-lke/lke-sdk-go/event"
@@ -17,6 +18,8 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/tool"
 	"github.com/tmaxmax/go-sse"
 )
+
+var IsClosed atomic.Value
 
 // RunnerConf TODO
 type RunnerConf struct {
@@ -248,6 +251,9 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
 		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
 	}) {
+		if IsClosed.Load() != nil && IsClosed.Load().(bool) {
+			return nil, fmt.Errorf("client has been closed")
+		}
 		if err != nil {
 			return nil, fmt.Errorf("sse.Read error: %v", err)
 		}

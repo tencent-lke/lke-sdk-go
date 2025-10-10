@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -39,10 +38,10 @@ type lkeClient struct {
 	logger          runlog.RunLogger
 	toolRunTimeout  time.Duration
 	maxToolTurns    uint // 单次对话本地工具调用最大次数
-	closed          atomic.Bool
-	requestID       string
-	sessionID       string
-	visitorBizID    string
+	// closed          atomic.Bool
+	requestID    string
+	sessionID    string
+	visitorBizID string
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -624,10 +623,10 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 
 // Close 关闭所有 client 上的任务
 func (c *lkeClient) Close() {
-	c.closed.Store(true)
+	runner.IsClosed.Store(true)
 }
 
 // Open Open 已经 Close 的 client
 func (c *lkeClient) Open() {
-	c.closed.Store(false)
+	runner.IsClosed.Store(false)
 }
