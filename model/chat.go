@@ -22,6 +22,8 @@ type Options struct {
 	// 用于端上sdk的参数
 	ToolOuputs  []ToolOuput `json:"tool_ouputs"`  // 端上调用工具的输出提交到云上
 	AgentConfig AgentConfig `json:"agent_config"` // agent配置
+	
+	EnvSet string `json:"-"` // 泳道环境设置
 }
 
 // VisitorLabel 定义了知识标签的结构
