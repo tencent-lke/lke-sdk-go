@@ -227,7 +227,6 @@ func (c *RunnerImp) buildReq(query, requestID, sessionID, visitorBizID string, b
 		}
 	}
 	// bs, _ := json.Marshal(req)
-	// fmt.Printf("req: %v\n", string(bs))
 	return req
 }
 
