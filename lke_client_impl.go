@@ -167,7 +167,8 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	return addTools, err
 }
 
-func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string, toolName string, toolDescription string) error {
+func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string,
+	toolName string, toolDescription string) (addtool *agentastool.AgentAsTool, err error) {
 	var agent model.Agent
 	ishaveAgent := false
 	for _, a := range c.agents {
@@ -178,7 +179,7 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string, too
 		}
 	}
 	if !ishaveAgent {
-		return fmt.Errorf("agent %s not found", agentastoolName)
+		return nil, fmt.Errorf("agent %s not found", agentastoolName)
 	}
 	tools := c.toolsMap[agentastoolName]
 	agentAsTool := &agentastool.AgentAsTool{
@@ -218,7 +219,7 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string, too
 	// 		c.toolsMap[agentName] = toolFuncs
 	// 	}
 	// }
-	return nil
+	return agentAsTool, nil
 }
 
 // func (c *lkeClient) AddAgentAsToolTools(agentName string, instructions string, modelname string) {
