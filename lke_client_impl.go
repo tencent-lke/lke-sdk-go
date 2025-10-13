@@ -42,6 +42,7 @@ type lkeClient struct {
 	requestID    string
 	sessionID    string
 	visitorBizID string
+	runnerImpl   *runner.RunnerImp
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -527,12 +528,12 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		LocalToolRunTimeout: c.toolRunTimeout,
 	}
 	c.logger.Info(fmt.Sprintf("RunWithContext: %v", query))
-	runnerInstance := runner.NewRunnerImp(c.toolsMap,
+	c.runnerImpl = runner.NewRunnerImp(c.toolsMap,
 		c.agents,
 		c.handoffs,
 		runconf,
 	)
-	return runnerInstance.RunWithContext(ctx, query, c.requestID, c.sessionID, c.visitorBizID, options)
+	return c.runnerImpl.RunWithContext(ctx, query, c.requestID, c.sessionID, c.visitorBizID, options)
 	// req := c.buildReq(query, sesionID, visitorBizID, options)
 	// for i := 0; i <= int(c.maxToolTurns); i++ {
 	// 	if c.closed.Load() {
@@ -624,10 +625,10 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 
 // Close 关闭所有 client 上的任务
 func (c *lkeClient) Close() {
-	runner.IsClosed.Store(true)
+	c.runnerImpl.IsClosed.Store(true)
 }
 
 // Open Open 已经 Close 的 client
 func (c *lkeClient) Open() {
-	runner.IsClosed.Store(false)
+	c.runnerImpl.IsClosed.Store(false)
 }
