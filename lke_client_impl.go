@@ -569,7 +569,6 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 // visitorBizID 用户的唯一标识
 func (c *lkeClient) Run(query string,
 	options *model.Options) (*event.ReplyEvent, error) {
-	runner.IsClosed.Store(false)
 	return c.RunWithContext(context.Background(), query, options)
 }
 

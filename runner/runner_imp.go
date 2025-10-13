@@ -19,7 +19,7 @@ import (
 	"github.com/tmaxmax/go-sse"
 )
 
-var IsClosed atomic.Value
+var IsClosed atomic.Bool
 
 // RunnerConf TODO
 type RunnerConf struct {
@@ -255,7 +255,7 @@ func (c *RunnerImp) queryOnce(ctx context.Context, req *model.ChatRequest) (
 	for ev, err := range sse.Read(res.Body, &sse.ReadConfig{
 		MaxEventSize: 10 * 1024 * 1024, // 10M buffer
 	}) {
-		if IsClosed.Load() != nil && IsClosed.Load().(bool) {
+		if IsClosed.Load() {
 			return nil, fmt.Errorf("client has been closed")
 		}
 		if err != nil {
