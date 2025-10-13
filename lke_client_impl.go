@@ -43,6 +43,7 @@ type lkeClient struct {
 	sessionID    string
 	visitorBizID string
 	runnerImpl   *runner.RunnerImp
+	agentTools   []*agentastool.AgentAsTool
 }
 
 // GetBotAppKey 获取 BotAppKey
@@ -220,6 +221,7 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string,
 	// 		c.toolsMap[agentName] = toolFuncs
 	// 	}
 	// }
+	c.agentTools = append(c.agentTools, agentAsTool)
 	return agentAsTool, nil
 }
 
@@ -626,9 +628,16 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 // Close 关闭所有 client 上的任务
 func (c *lkeClient) Close() {
 	c.runnerImpl.IsClosed.Store(true)
+	for _, r := range c.agentTools {
+		r.RunnerImpl.IsClosed.Store(true)
+	}
 }
 
 // Open Open 已经 Close 的 client
 func (c *lkeClient) Open() {
 	c.runnerImpl.IsClosed.Store(false)
+	for _, r := range c.agentTools {
+		r.RunnerImpl.IsClosed.Store(false)
+	}
+
 }

@@ -28,6 +28,7 @@ type AgentAsTool struct {
 	SessionID    string
 	index        int64
 	Conf         runner.RunnerConf
+	RunnerImpl   *runner.RunnerImp
 }
 
 // GetName returns the name of the tool
@@ -68,7 +69,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	toolsMap := map[string][]tool.Tool{}
 	toolsMap[m.Agent.Name] = m.Tools
 	handoffs := []model.Handoff{}
-	runner := runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
+	m.RunnerImpl = runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
 	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
 	options := &model.Options{StreamingThrottle: 20,
 		CustomVariables: map[string]string{
@@ -77,7 +78,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 		}}
 	m.index = m.index + 1
 	instruction := query + "\n\n" + m.generateJSONInstructions()
-	result, err := runner.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
+	result, err := m.RunnerImpl.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
 	if err != nil {
 		return nil, err
 	}
