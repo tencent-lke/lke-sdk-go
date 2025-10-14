@@ -627,6 +627,7 @@ func (c *lkeClient) mockToolCall(reply *event.ReplyEvent) {
 
 // Close 关闭所有 client 上的任务
 func (c *lkeClient) Close() {
+	c.logger.Error("client closed by user")
 	c.runnerImpl.IsClosed.Store(true)
 	for _, r := range c.agentTools {
 		r.RunnerImpl.IsClosed.Store(true)
@@ -635,6 +636,7 @@ func (c *lkeClient) Close() {
 
 // Open Open 已经 Close 的 client
 func (c *lkeClient) Open() {
+	c.logger.Error("client open by user")
 	c.runnerImpl.IsClosed.Store(false)
 	for _, r := range c.agentTools {
 		r.RunnerImpl.IsClosed.Store(false)
