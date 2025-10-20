@@ -65,9 +65,10 @@ type TokenStatEvent struct {
 	// ProceduresDetail []Procedure `json:"procedures_detail"` // 过程列表详细, 支持多个相同过程
 	Procedures []Procedure `json:"procedures"` // 过程列表, 从详细中去重获得
 
-	StartTime         time.Time `json:"-"` // 开始时间, 用于记录总耗时
-	EventSource       string    `json:"-"` // 本次 token 统计的 event 来源
-	FinanceSubBizType string    `json:"-"` // 计费子类型
+	StartTime         time.Time   `json:"-"` // 开始时间, 用于记录总耗时
+	EventSource       string      `json:"-"` // 本次 token 统计的 event 来源
+	FinanceSubBizType string      `json:"-"` // 计费子类型
+	Extend            EventExtend `json:"extend,omitempty"`
 }
 
 // Procedure 执行过程
@@ -122,13 +123,13 @@ type KnowledgeSummary struct {
 type ValueType int32
 
 type ValueInfo struct {
-	ID            string    `json:"id,omitempty"`            // ID
-	Name          string    `json:"name,omitempty"`          // Name
-	ValueType     ValueType `json:"value_type,omitempty"`     // ValueType
-	ValueStr      string    `json:"value_str,omitempty"`      // ValueStr
-	ValueInt      int64     `json:"value_int,omitempty"`      // ValueInt
-	ValueFloat    float32   `json:"value_float,omitempty"`    // ValueFloat
-	ValueBool     bool      `json:"value_bool,omitempty"`     // ValueBool
+	ID            string    `json:"id,omitempty"`              // ID
+	Name          string    `json:"name,omitempty"`            // Name
+	ValueType     ValueType `json:"value_type,omitempty"`      // ValueType
+	ValueStr      string    `json:"value_str,omitempty"`       // ValueStr
+	ValueInt      int64     `json:"value_int,omitempty"`       // ValueInt
+	ValueFloat    float32   `json:"value_float,omitempty"`     // ValueFloat
+	ValueBool     bool      `json:"value_bool,omitempty"`      // ValueBool
 	ValueStrArray []string  `json:"value_str_array,omitempty"` // ValueStrArray
 }
 
@@ -141,14 +142,14 @@ type StrValue struct {
 }
 
 type InvokeAPI struct {
-	Method          string       `json:"method,omitempty"`          // 请求方法，如GET/POST等
-	URL             string       `json:"url,omitempty"`             // 请求地址。
-	HeaderValues    []*StrValue  `json:"header_values,omitempty"`    // header参数
-	QueryValues     []*StrValue  `json:"query_values,omitempty"`     // 入参Query
+	Method          string       `json:"method,omitempty"`            // 请求方法，如GET/POST等
+	URL             string       `json:"url,omitempty"`               // 请求地址。
+	HeaderValues    []*StrValue  `json:"header_values,omitempty"`     // header参数
+	QueryValues     []*StrValue  `json:"query_values,omitempty"`      // 入参Query
 	RequestPostBody string       `json:"request_post_body,omitempty"` // Post请求的原始数据
-	ResponseBody    string       `json:"response_body,omitempty"`    // 返回的原始数据
-	ResponseValues  []*ValueInfo `json:"response_values,omitempty"`  // 出参
-	FailMessage     string       `json:"fail_message,omitempty"`     // 异常信息
+	ResponseBody    string       `json:"response_body,omitempty"`     // 返回的原始数据
+	ResponseValues  []*ValueInfo `json:"response_values,omitempty"`   // 出参
+	FailMessage     string       `json:"fail_message,omitempty"`      // 异常信息
 }
 
 type RunNodeStatus int32
@@ -162,34 +163,34 @@ const (
 )
 
 type RunNodeStatisticInfo struct {
-	ModelName      string `json:"model_name"`            // 模型名称
-	FirstTokenCost uint32 `json:"first_token_cost"`      // 首token耗时
-	TotalCost      uint32 `json:"total_cost"`            // 推理总耗时
-	InputTokens    uint32 `json:"input_tokens"`          // 输入token数量
-	OutputTokens   uint32 `json:"output_tokens"`         // 输出token数量
-	TotalTokens    uint32 `json:"total_tokens"`          // 输入+输出总token
-	IsSubWorkflow  bool   `json:"is_sub_workflow,omitempty"`   // 是否为子工作流的统计信息
+	ModelName      string `json:"model_name"`                // 模型名称
+	FirstTokenCost uint32 `json:"first_token_cost"`          // 首token耗时
+	TotalCost      uint32 `json:"total_cost"`                // 推理总耗时
+	InputTokens    uint32 `json:"input_tokens"`              // 输入token数量
+	OutputTokens   uint32 `json:"output_tokens"`             // 输出token数量
+	TotalTokens    uint32 `json:"total_tokens"`              // 输入+输出总token
+	IsSubWorkflow  bool   `json:"is_sub_workflow,omitempty"` // 是否为子工作流的统计信息
 }
 
 type RunNodeInfo struct {
-	NodeType         FlowNodeType           `json:"node_type,omitempty"`         // 节点类型
-	NodeID           string                 `json:"node_id,omitempty"`           // 节点ID
-	NodeName         string                 `json:"node_name,omitempty"`         // 节点名称
-	InvokeAPI        *InvokeAPI             `json:"invoke_api,omitempty"`        // 请求的API
-	SlotValues       []*ValueInfo           `json:"slot_values,omitempty"`       // 当前节点的所有槽位的值，key：SlotID。没有值的时候也要返回空。
-	Status           RunNodeStatus          `json:"status,omitempty"`            // 节点状态
-	Input            string                 `json:"input,omitempty"`             // 节点的输入。json字符串（含普通字符串）
-	Output           string                 `json:"output,omitempty"`            // 节点的输出
-	TaskOutput       string                 `json:"task_output,omitempty"`       // 任务的输出。（原始输出）
-	FailMessage      string                 `json:"fail_message,omitempty"`      // 异常信息
-	CostMilliSeconds uint32                 `json:"cost_milli_seconds,omitempty"` // 节点的总耗时。如果节点有多次调用，耗时为多次调用的总和。
-	FailCode         string                 `json:"fail_code,omitempty"`         // 异常信息对应的错误码，为云API格式的二级错误码，如： "NodeErr.MissingParam"
-	Log              string                 `json:"log,omitempty"`               // 节点的日志
-	LogRef           string                 `json:"log_ref,omitempty"`           // 节点的日志的完整内容的链接（当Log内容超过限制的时候此字段才有值）
-	InputRef         string                 `json:"input_ref,omitempty"`         // 节点的输入的完整内容的链接。（当Input内容超过限制的时候此字段才有值）
-	OutputRef        string                 `json:"output_ref,omitempty"`        // 节点的输出的完整内容的链接。（当Output内容超过限制的时候此字段才有值）
-	TaskOutputRef    string                 `json:"task_output_ref,omitempty"`    // 任务的原始输出的完整内容的链接。（当TaskOutput内容超过限制的时候此字段才有值）
-	StatisticInfos   []*RunNodeStatisticInfo `json:"statistic_infos,omitempty"`   // LLM统计信息。
+	NodeType         FlowNodeType            `json:"node_type,omitempty"`          // 节点类型
+	NodeID           string                  `json:"node_id,omitempty"`            // 节点ID
+	NodeName         string                  `json:"node_name,omitempty"`          // 节点名称
+	InvokeAPI        *InvokeAPI              `json:"invoke_api,omitempty"`         // 请求的API
+	SlotValues       []*ValueInfo            `json:"slot_values,omitempty"`        // 当前节点的所有槽位的值，key：SlotID。没有值的时候也要返回空。
+	Status           RunNodeStatus           `json:"status,omitempty"`             // 节点状态
+	Input            string                  `json:"input,omitempty"`              // 节点的输入。json字符串（含普通字符串）
+	Output           string                  `json:"output,omitempty"`             // 节点的输出
+	TaskOutput       string                  `json:"task_output,omitempty"`        // 任务的输出。（原始输出）
+	FailMessage      string                  `json:"fail_message,omitempty"`       // 异常信息
+	CostMilliSeconds uint32                  `json:"cost_milli_seconds,omitempty"` // 节点的总耗时。如果节点有多次调用，耗时为多次调用的总和。
+	FailCode         string                  `json:"fail_code,omitempty"`          // 异常信息对应的错误码，为云API格式的二级错误码，如： "NodeErr.MissingParam"
+	Log              string                  `json:"log,omitempty"`                // 节点的日志
+	LogRef           string                  `json:"log_ref,omitempty"`            // 节点的日志的完整内容的链接（当Log内容超过限制的时候此字段才有值）
+	InputRef         string                  `json:"input_ref,omitempty"`          // 节点的输入的完整内容的链接。（当Input内容超过限制的时候此字段才有值）
+	OutputRef        string                  `json:"output_ref,omitempty"`         // 节点的输出的完整内容的链接。（当Output内容超过限制的时候此字段才有值）
+	TaskOutputRef    string                  `json:"task_output_ref,omitempty"`    // 任务的原始输出的完整内容的链接。（当TaskOutput内容超过限制的时候此字段才有值）
+	StatisticInfos   []*RunNodeStatisticInfo `json:"statistic_infos,omitempty"`    // LLM统计信息。
 }
 
 // TaskFlowSummary 任务流程信息

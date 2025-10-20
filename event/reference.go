@@ -26,6 +26,7 @@ const EventReference = "reference"
 type ReferenceEvent struct {
 	RecordID   string      `json:"record_id"`
 	References []Reference `json:"references"`
+	Extend     EventExtend `json:"extend,omitempty"`
 }
 
 // Name 事件名称

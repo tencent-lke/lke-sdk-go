@@ -1,19 +1,19 @@
-package lkesdk
+package eventhandler
 
 import (
 	"github.com/tencent-lke/lke-sdk-go/event"
-	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 // ToolCallContext 工具调用的上下文
 type ToolCallContext struct {
-	CallTool tool.Tool
-	CallId   string
-	Input    map[string]interface{}
+	CallToolName string
+	CallId       string
+	Input        map[string]interface{}
 	// 如果是自定义的函数，output 类型是自定义函数的返回
 	// 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
 	Output interface{}
 	Err    error
+	Extend map[string]string
 }
 
 // EventHandler 事件处理的接口，用户可以用默认的实现，也可以自定义

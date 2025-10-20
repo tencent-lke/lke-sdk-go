@@ -22,9 +22,10 @@ type AgentThoughtEvent struct {
 	WorkflowName string           `json:"workflow_name"` // 工作流名称
 	Procedures   []AgentProcedure `json:"procedures"`    // 过程列表, 从详细中去重获得
 
-	StartTime      time.Time `json:"-"` // 开始时间, 用于记录总耗时
-	EventSource    string    `json:"-"` // 本次 token 统计的 event 来源
-	IsEvaluateTest bool      `json:"-"` // 是否应用评测
+	StartTime      time.Time   `json:"-"` // 开始时间, 用于记录总耗时
+	EventSource    string      `json:"-"` // 本次 token 统计的 event 来源
+	IsEvaluateTest bool        `json:"-"` // 是否应用评测
+	Extend         EventExtend `json:"extend,omitempty"`
 }
 
 // AgentProcedure 执行过程

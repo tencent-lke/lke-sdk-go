@@ -8,6 +8,10 @@ type Event interface {
 	Name() string
 }
 
+type EventExtend struct {
+	Extend map[string]string `json:"extend,omitempty"`
+}
+
 // EventWrapper 事件 Wrapper
 type EventWrapper struct {
 	Type      string          `json:"type,omitempty"`

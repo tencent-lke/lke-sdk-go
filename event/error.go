@@ -6,9 +6,10 @@ const EventError = "error"
 
 // ErrorEvent 错误事件消息体
 type ErrorEvent struct {
-	Error     Error  `json:"error"`
-	RequestID string `json:"request_id"`
-	TraceId   string `json:"trace_id"`
+	Error     Error       `json:"error"`
+	RequestID string      `json:"request_id"`
+	TraceId   string      `json:"trace_id"`
+	Extend    EventExtend `json:"extend,omitempty"`
 }
 
 // Name 事件名称

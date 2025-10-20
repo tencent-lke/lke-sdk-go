@@ -14,25 +14,27 @@ import (
 
 	"github.com/google/uuid"
 	mcpclient "github.com/mark3labs/mcp-go/client"
+	"github.com/mark3labs/mcp-go/client/transport"
 	"github.com/mark3labs/mcp-go/mcp"
 	lkesdk "github.com/tencent-lke/lke-sdk-go"
 	"github.com/tencent-lke/lke-sdk-go/event"
+	"github.com/tencent-lke/lke-sdk-go/eventhandler"
+	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
 	"github.com/tencent-lke/lke-sdk-go/model"
-	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
 type myLogger struct {
 	F *os.File
 }
 
-// Info ...
+// Info TODO
 func (m myLogger) Info(msg string) {
 	if m.F != nil {
 		m.F.WriteString("INFO: " + msg + "\n")
 	}
 }
 
-// Error ...
+// Error TODO
 func (m myLogger) Error(msg string) {
 	if m.F != nil {
 		m.F.WriteString("ERROR: " + msg + "\n")
@@ -62,10 +64,10 @@ func buildPlaywrightMcpClient() mcpclient.MCPClient {
 
 // MyEventHandler 创建自定义事件处理器
 type MyEventHandler struct {
-	lastReply                  string
-	replying                   bool
-	lastThought                string
-	lkesdk.DefaultEventHandler // 引用默认实现
+	lastReply                        string
+	replying                         bool
+	lastThought                      string
+	eventhandler.DefaultEventHandler // 引用默认实现
 }
 
 // OnReply 自定义回复处理事件，使用增量输出 repley
@@ -92,6 +94,7 @@ func (e *MyEventHandler) OnReply(reply *event.ReplyEvent) {
 	}
 }
 
+// OnThought TODO
 // OnReply 自定义思考处理事件,使用增量输出思考过程
 func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 	if e.replying {
@@ -124,54 +127,65 @@ func (e *MyEventHandler) OnThought(thought *event.AgentThoughtEvent) {
 // AfterToolCallHook 工具调用后的钩子
 // 如果是自定义的函数，output 类型是自定义函数的返回
 // 如果是 mcp 工具，output 是 *mcp.CallToolResult 类型
-func (e *MyEventHandler) AfterToolCallHook(callCtx lkesdk.ToolCallContext) {
+func (e *MyEventHandler) AfterToolCallHook(callCtx eventhandler.ToolCallContext) {
 	inputbs, _ := json.Marshal(callCtx.Input)
 	outbs := []byte{}
-	if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
-		mcpRsp, okout := callCtx.Output.(*mcp.CallToolResult)
-		if okout {
-			outbs, _ = json.Marshal(mcpRsp)
-		}
-	} else {
-		outbs, _ = json.Marshal(callCtx.Output)
-	}
+	// if _, ok := callCtx.CallTool.(*tool.McpTool); ok {
+	// 	mcpRsp, okout := callCtx.Output.(*mcp.CallToolResult)
+	// 	if okout {
+	// 		outbs, _ = json.Marshal(mcpRsp)
+	// 	}
+	// } else {
+	// 	outbs, _ = json.Marshal(callCtx.Output)
+	// }
 	prefix := ""
 	for range 20 {
 		prefix = prefix + " "
 	}
 	fmt.Printf("\n\n%s called tools %s, id: %s, input: %s, output: %s  \n\n",
-		prefix, callCtx.CallTool.GetName(), callCtx.CallId,
+		prefix, callCtx.CallToolName, callCtx.CallId,
 		string(inputbs), string(outbs))
 }
 
 func main() {
 	sessionID := uuid.New().String()
-	client := lkesdk.NewLkeClient(botAppKey, &MyEventHandler{})
+	client := lkesdk.NewLkeClient(botAppKey, "111", sessionID, &MyEventHandler{})
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse?qbot_env_set=2_11")
 	client.SetEndpoint("https://testwss.testsite.woa.com/v1/qbot/chat/experienceSse")
 	c := buildPlaywrightMcpClient() // 启动一个本地浏览器操作 mcp client
 	defer c.Close()
 	// 定义新闻搜索 agent
-	downloadAgent := model.NewAgent(
-		"下载助手agent",
-		"根据用户输入需求，寻找到合适的下载链接。",
-		"一个万能的下载助手",
+	taskAgent := model.NewAgent(
+		"任务分配助手agent",
+		"taskAgent",
+		"一个万能的任务分配助手",
 		model.ModelFunctionCallPro,
+		nil, nil,
 	)
 	browserAgent := model.NewAgent(
 		"浏览器控制 agent",
 		"涉及到实际操作浏览器",
 		"涉及到实际浏览器控制和操作的需求都可以交给我。",
 		model.ModelFunctionCallPro,
+		nil, nil,
 	)
-	client.AddAgents([]model.Agent{downloadAgent, browserAgent})
-	client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
-	client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
-
-	addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
-		Name:    "text",
-		Version: "1.0.0",
-	}, nil)
+	// _, f1, _, _ := runtime.Caller(0)
+	// serverPath := path.Join(path.Dir(f1), "server.py")
+	client.AddAgents([]model.Agent{taskAgent, browserAgent})
+	// client.AddHandoffs("新闻搜索", []string{browserAgent.Name})
+	// client.AddHandoffs(downloadAgent.Name, []string{browserAgent.Name})
+	var initrequest mcp.InitializeRequest
+	mcpserversse := mcpserversse.NewMcpServerSse(
+		"http://localhost:8718/sse",
+		[]transport.ClientOption{},
+		initrequest,
+		0,
+	)
+	// addTools, err := client.AddMcpTools(browserAgent.Name, c, mcp.Implementation{
+	// 	Name:    "text",
+	// 	Version: "1.0.0",
+	// }, nil)
+	addTools, err := client.AddMcpTools(browserAgent.Name, mcpserversse, nil)
 	if err != nil {
 		log.Fatalf("Failed to AddMcpTools, error: %v", err)
 	}
@@ -180,9 +194,10 @@ func main() {
 		fmt.Printf("toolname: %s\ndescribe: %s\nschema: %v\n\n",
 			tools.GetName(), tools.GetDescription(), string(bs))
 	}
+	client.AddAgentAsTool(taskAgent.Name, browserAgent.Name, browserAgent.Name, "")
 	client.SetToolRunTimeout(20 * time.Second) // 设置工具超时时间
 	// 设置入口 agent，如果不配置，默认从当前应用的云上的主 agent 开始执行
-	client.SetStartAgent(browserAgent.Name)
+	client.SetStartAgent(taskAgent.Name)
 	client.SetEnableSystemOpt(true)
 	f, err := os.OpenFile("./logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
@@ -206,7 +221,7 @@ func main() {
 			StreamingThrottle: 5,
 			CustomVariables:   map[string]string{}, // CustomVariables 调用工具不需要模型自动提取的参数，固定传入用户的参数
 		}
-		_, err = client.Run(query, sessionID, visitorBizID, options)
+		_, err = client.Run(query, options)
 		if err != nil {
 			log.Fatalf("run error: %v", err)
 		}
