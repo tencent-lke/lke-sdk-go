@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -61,9 +62,23 @@ func (m *AgentAsTool) GetParametersSchema() map[string]interface{} {
 
 // Execute executes the tool with the given parameter
 func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
-	query, ok := params["query"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid query parameter")
+	input := ""
+	if m.Agent.InputSchema != nil {
+		_, err := govalidator.ValidateMap(params, m.Agent.InputSchema)
+		if err != nil {
+			return nil, fmt.Errorf("failed to validate parameters: %v", err)
+		}
+		paramsBytes, err := json.Marshal(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal parameters: %v", err)
+		}
+		input = string(paramsBytes)
+	} else {
+		query, ok := params["query"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid query parameter")
+		}
+		input = query
 	}
 	agents := []model.Agent{m.Agent}
 	toolsMap := map[string][]tool.Tool{}
@@ -77,7 +92,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 			"_user_task_id": m.SessionID,
 		}}
 	m.index = m.index + 1
-	instruction := query + "\n\n" + m.generateJSONInstructions()
+	instruction := input + "\n\n" + m.generateJSONInstructions()
 	result, err := m.RunnerImpl.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
 	if err != nil {
 		return nil, err

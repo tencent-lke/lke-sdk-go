@@ -630,7 +630,9 @@ func (c *lkeClient) Close() {
 	c.logger.Error("client closed by user")
 	c.runnerImpl.IsClosed.Store(true)
 	for _, r := range c.agentTools {
-		r.RunnerImpl.IsClosed.Store(true)
+		if r.RunnerImpl != nil {
+			r.RunnerImpl.IsClosed.Store(true)
+		}
 	}
 }
 
@@ -639,7 +641,9 @@ func (c *lkeClient) Open() {
 	c.logger.Error("client open by user")
 	c.runnerImpl.IsClosed.Store(false)
 	for _, r := range c.agentTools {
-		r.RunnerImpl.IsClosed.Store(false)
+		if r.RunnerImpl != nil {
+			r.RunnerImpl.IsClosed.Store(false)
+		}
 	}
 
 }
