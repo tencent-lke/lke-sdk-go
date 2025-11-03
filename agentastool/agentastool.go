@@ -93,7 +93,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 			"_user_task_id": m.SessionID,
 		},
 	}
-	if envSet := util.EnvSetFromContext(ctx); envSet != "" {
+	if envSet := util.GetEnvSetFromContext(ctx); envSet != "" {
 		options.EnvSet = envSet
 	}
 	m.index = m.index + 1

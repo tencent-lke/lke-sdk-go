@@ -14,8 +14,8 @@ func WithEnvSet(ctx context.Context, envSet string) context.Context {
 	return context.WithValue(ctx, envSetContextKey, envSet)
 }
 
-// EnvSetFromContext extracts envSet from ctx if present.
-func EnvSetFromContext(ctx context.Context) string {
+// GetEnvSetFromContext extracts envSet from ctx if present.
+func GetEnvSetFromContext(ctx context.Context) string {
 	if ctx == nil {
 		return ""
 	}
