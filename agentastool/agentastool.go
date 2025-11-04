@@ -12,23 +12,21 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/tool"
 )
 
+var Agentglobalnumber int64
+
 // AgentAsTool ...
 type AgentAsTool struct {
-	Name        string // Tool名称
-	Description string // Tool描述
-	// Instructions string        // Tool推广信息
-	// ModelName    string        // Tool模型信息
-	// AgentName    string        // Agent名称
-	Timeout time.Duration // 超时配置
-	Agent   model.Agent
-	// OutputSchema map[string]interface{} `json:"outputSchema"`
-	// InputSchema  map[string]interface{} `json:"inputSchema"`
+	Name         string        // Tool名称
+	Description  string        // Tool描述
+	Timeout      time.Duration // 超时配置
+	Agent        model.Agent
 	Tools        []tool.Tool // agent需要调用的tools
 	RequestID    string
 	VisitorBizID string
 	SessionID    string
 	index        int64
 	Conf         runner.RunnerConf
+	AgentNum     int64
 	RunnerImpl   *runner.RunnerImp
 }
 
@@ -85,7 +83,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 	toolsMap[m.Agent.Name] = m.Tools
 	handoffs := []model.Handoff{}
 	m.RunnerImpl = runner.NewRunnerImp(toolsMap, agents, handoffs, m.Conf)
-	sessionID := fmt.Sprintf("%s_%d", m.SessionID, m.index)
+	sessionID := fmt.Sprintf("%s_%d_%d", m.SessionID, m.AgentNum, m.index)
 	options := &model.Options{StreamingThrottle: 20,
 		CustomVariables: map[string]string{
 			"_user_guid":    m.VisitorBizID,

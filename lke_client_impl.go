@@ -203,7 +203,9 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string,
 			BotAppKey:           c.botAppKey,
 			LocalToolRunTimeout: c.toolRunTimeout,
 		},
+		AgentNum: int64(agentastool.Agentglobalnumber),
 	}
+	agentastool.Agentglobalnumber++
 	if toolDescription != "" {
 		agentAsTool.Description = toolDescription
 	}
