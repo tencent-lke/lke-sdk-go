@@ -185,6 +185,15 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string,
 		return nil, fmt.Errorf("agent %s not found", agentastoolName)
 	}
 	tools := c.toolsMap[agentastoolName]
+	var agentnum int64
+	agentindex, exists := agentastool.AgentToIndex[agentName]
+	if exists {
+		agentnum = agentindex
+	} else {
+		agentnum = agentastool.Agentglobalnumber
+		agentastool.AgentToIndex[agentName] = agentnum
+		agentastool.Agentglobalnumber++
+	}
 	agentAsTool := &agentastool.AgentAsTool{
 		Name:         toolName,
 		Description:  agent.Instructions,
@@ -204,9 +213,8 @@ func (c *lkeClient) AddAgentAsTool(agentName string, agentastoolName string,
 			BotAppKey:           c.botAppKey,
 			LocalToolRunTimeout: c.toolRunTimeout,
 		},
-		AgentNum: int64(agentastool.Agentglobalnumber),
+		AgentNum: agentnum,
 	}
-	agentastool.Agentglobalnumber++
 	if toolDescription != "" {
 		agentAsTool.Description = toolDescription
 	}

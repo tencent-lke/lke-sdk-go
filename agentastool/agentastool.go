@@ -14,6 +14,7 @@ import (
 )
 
 var Agentglobalnumber int64
+var AgentToIndex = make(map[string]int64)
 
 // AgentAsTool ...
 type AgentAsTool struct {
