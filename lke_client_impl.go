@@ -15,6 +15,7 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/runlog"
 	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
+	"github.com/tencent-lke/lke-sdk-go/util"
 )
 
 const (
@@ -530,6 +531,9 @@ func (c *lkeClient) RunWithContext(ctx context.Context,
 		Endpoint:            c.endpoint,
 		BotAppKey:           c.botAppKey,
 		LocalToolRunTimeout: c.toolRunTimeout,
+	}
+	if options != nil && options.EnvSet != "" {
+		ctx = util.WithEnvSet(ctx, options.EnvSet)
 	}
 	c.logger.Info(fmt.Sprintf("RunWithContext: %v", query))
 	c.runnerImpl = runner.NewRunnerImp(c.toolsMap,

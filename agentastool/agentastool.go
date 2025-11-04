@@ -10,6 +10,7 @@ import (
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
+	"github.com/tencent-lke/lke-sdk-go/util"
 )
 
 var Agentglobalnumber int64
@@ -89,6 +90,9 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 			"_user_guid":    m.VisitorBizID,
 			"_user_task_id": m.SessionID,
 		}}
+	if envSet := util.GetEnvSetFromContext(ctx); envSet != "" {
+		options.EnvSet = envSet
+	}
 	m.index = m.index + 1
 	instruction := input + "\n\n" + m.generateJSONInstructions()
 	result, err := m.RunnerImpl.RunWithContext(ctx, instruction, m.RequestID, sessionID, m.VisitorBizID, options)
