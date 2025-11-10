@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/tencent-lke/lke-sdk-go/model"
 	"github.com/tencent-lke/lke-sdk-go/runner"
 	"github.com/tencent-lke/lke-sdk-go/tool"
@@ -63,10 +64,14 @@ func (m *AgentAsTool) GetParametersSchema() map[string]interface{} {
 func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
 	input := ""
 	if m.Agent.InputSchema != nil {
-		// _, err := govalidator.ValidateMap(params, m.Agent.InputSchema)
-		// if err != nil {
-		// 	return nil, fmt.Errorf("failed to validate parameters: %v, content: %v", err, params)
-		// }
+		fieldsToRemove := []string{"_user_guid", "_user_task_id"}
+		for _, field := range fieldsToRemove {
+			delete(params, field)
+		}
+		_, err := govalidator.ValidateMap(params, m.Agent.InputSchema)
+		if err != nil {
+			return nil, fmt.Errorf("failed to validate parameters: %v, content: %v", err, params)
+		}
 		paramsBytes, err := json.Marshal(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal parameters: %v", err)
