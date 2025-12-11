@@ -8,6 +8,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/tencent-lke/lke-sdk-go/mcpserversse"
+	"github.com/tencent-lke/lke-sdk-go/runlog"
 )
 
 type mcpClientCache struct {
@@ -15,6 +16,7 @@ type mcpClientCache struct {
 	Data          map[string]mcp.Tool
 	OrderedName   []string
 	LastFetchTime time.Time
+	Logger        runlog.RunLogger
 }
 
 func replaceDefaultWithJson(m map[string]interface{}) error {
@@ -49,9 +51,10 @@ func (cache *mcpClientCache) GetParametersSchema(name string) map[string]interfa
 }
 
 // 构建一个新的 mcp client cache
-func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse) (*mcpClientCache, error) {
+func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse, logger runlog.RunLogger) (*mcpClientCache, error) {
 	cache := &mcpClientCache{
 		McpServerSse:  mcpServerSse,
+		Logger:        logger,
 		LastFetchTime: time.Now(),
 		Data:          map[string]mcp.Tool{},
 		OrderedName:   []string{},
@@ -77,6 +80,9 @@ func (cache *mcpClientCache) fetch() {
 	if time.Now().After(cache.LastFetchTime.Add(2 * time.Second)) {
 		rsp, err := ListMcpTools(cache.McpServerSse)
 		if err != nil {
+			if cache.Logger != nil {
+				cache.Logger.Error(fmt.Sprintf("fetch ListMcpTools url: %v error: %v", cache.McpServerSse.SseUrl, err))
+			}
 			return
 		}
 		cache.LastFetchTime = time.Now()

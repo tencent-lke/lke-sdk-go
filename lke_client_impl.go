@@ -116,7 +116,6 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 	if len(tools) == 0 {
 		return
 	}
-
 	toolFuncs, ok := c.toolsMap[agentName]
 	if !ok {
 		toolFuncs = []tool.Tool{}
@@ -133,10 +132,12 @@ func (c *lkeClient) AddFunctionTools(agentName string, tools []*tool.FunctionToo
 // AddMcpTools 增加 mcptools
 func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.McpServerSse, selectedToolNames []string) (
 	addTools []*tool.McpTool, err error) {
-	cache, err := tool.NewMcpClientCache(mcpServerSse)
+	cache, err := tool.NewMcpClientCache(mcpServerSse, c.logger)
 	if err != nil {
-		c.logger.Error(fmt.Sprintf("AddMcpTools NewMcpClientCache error: %v", err))
-		return nil, fmt.Errorf("failed to list tools: %v", err)
+		if c.logger != nil {
+			c.logger.Error(fmt.Sprintf("AddMcpTools NewMcpClientCache url: %v error: %v", mcpServerSse.SseUrl, err))
+		}
+		return nil, fmt.Errorf("failed to list url: %v tools: %v", mcpServerSse.SseUrl, err)
 	}
 	selectMap := map[string]struct{}{}
 	for _, t := range selectedToolNames {
