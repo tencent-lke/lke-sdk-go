@@ -61,7 +61,7 @@ func NewMcpClientCache(mcpServerSse *mcpserversse.McpServerSse, logger runlog.Ru
 	}
 	rsp, err := ListMcpTools(mcpServerSse)
 	if err != nil {
-		return nil, fmt.Errorf("mcp client is list tools error: %v", err)
+		return nil, fmt.Errorf("mcp client url: %v is list tools error: %v", mcpServerSse.SseUrl, err)
 	}
 	for _, tool := range rsp.Tools {
 		cache.Data[tool.Name] = tool

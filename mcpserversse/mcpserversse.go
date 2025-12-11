@@ -85,19 +85,19 @@ func (sse *McpServerSse) Ping(ctx context.Context) error {
 	if sse.Cli != nil {
 		return sse.Cli.Ping(ctx)
 	}
-	return fmt.Errorf("mcp client is not initialized")
+	return fmt.Errorf("SseUrl:%v, mcp client is not initialized", sse.SseUrl)
 }
 
 func (sse *McpServerSse) ListTools(ctx context.Context, request mcp.ListToolsRequest) (*mcp.ListToolsResult, error) {
 	if sse.Cli != nil {
 		return sse.Cli.ListTools(ctx, request)
 	}
-	return nil, fmt.Errorf("mcp client is not initialized")
+	return nil, fmt.Errorf("SseUrl:%v, mcp client is not initialized", sse.SseUrl)
 }
 
 func (sse *McpServerSse) CallTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	if sse.Cli != nil {
 		return sse.Cli.CallTool(ctx, request)
 	}
-	return nil, fmt.Errorf("mcp client is not initialized")
+	return nil, fmt.Errorf("SseUrl:%v, mcp client is not initialized", sse.SseUrl)
 }
