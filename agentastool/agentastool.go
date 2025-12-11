@@ -69,7 +69,7 @@ func (m *AgentAsTool) Execute(ctx context.Context, params map[string]interface{}
 		}
 		// _, err := govalidator.ValidateMap(params, m.Agent.InputSchema)
 		// if err != nil {
-		// 	return nil, fmt.Errorf("failed to validate parameters: %v, content: %v", err, params)
+		// 	return nil, fmt.Errorf("failed to validate parameters: %v, content: %v, inputschema: %v", err, params, m.Agent.InputSchema)
 		// }
 		paramsBytes, err := json.Marshal(params)
 		if err != nil {
