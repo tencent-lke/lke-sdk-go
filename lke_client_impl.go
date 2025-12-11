@@ -135,6 +135,7 @@ func (c *lkeClient) AddMcpTools(agentName string, mcpServerSse *mcpserversse.Mcp
 	addTools []*tool.McpTool, err error) {
 	cache, err := tool.NewMcpClientCache(mcpServerSse)
 	if err != nil {
+		c.logger.Error(fmt.Sprintf("AddMcpTools NewMcpClientCache error: %v", err))
 		return nil, fmt.Errorf("failed to list tools: %v", err)
 	}
 	selectMap := map[string]struct{}{}
