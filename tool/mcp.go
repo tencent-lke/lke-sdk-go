@@ -150,34 +150,14 @@ func (m *McpTool) Execute(ctx context.Context, params map[string]interface{}) (i
 
 // ListMcpTools 获取 mcp 工具列表
 func ListMcpTools(mcpserver *mcpserversse.McpServerSse) (res *mcp.ListToolsResult, err error) {
-	ctx := context.Background()
-	runCtx, cancel := context.WithCancel(ctx)
-	t := time.NewTimer(5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	signal := make(chan struct{})
-	go func() {
-		defer func() {
-			select {
-			case <-runCtx.Done():
-				return
-			case signal <- struct{}{}:
-			}
-		}()
-		if err = mcpserver.Ping(ctx); err != nil {
-			return
-		}
-		toolsRequest := mcp.ListToolsRequest{}
-		res, err = mcpserver.ListTools(runCtx, toolsRequest)
-	}()
-	for {
-		select {
-		case <-t.C:
-			err = fmt.Errorf("ListMcpTools timeout")
-			return nil, err
-		case <-signal:
-			return res, err
-		}
+	if err = mcpserver.Ping(ctx); err != nil {
+		return nil, err
 	}
+	toolsRequest := mcp.ListToolsRequest{}
+	res, err = mcpserver.ListTools(ctx, toolsRequest)
+	return res, err
 }
 
 // ResultToString ...
